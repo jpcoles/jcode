@@ -1,0 +1,169 @@
+set format x "%L"
+set logscale x 2
+set logscale y 
+set xlabel "lgN bytes"
+set ylabel "GB/Second"
+GB=1024*1024*1024
+set terminal postscript enhanced color
+set output "stats1.eps"
+#plot "stats1" u 2:5 i 1 w lp, "" u 2:6 i 1 w lp, "" u 2:($5/$6) i 1 w lp
+#plot "stats1" u 2:5 i 2 w lp, "" u 2:6 i 2 w lp, "" u 2:($5/$6) i 2 w lp
+#plot "stats1" u 2:5 i 3 w lp, "" u 2:6 i 3 w lp, "" u 2:($5/$6) i 3 w lp
+#plot "stats1" u 2:5 i 4 w lp, "" u 2:6 i 4 w lp, "" u 2:($5/$6) i 4 w lp
+#plot "stats1" u 2:($2/$5/GB) i 4 w lp, "" u 2:($2/$6/GB) i 4 w lp
+plot "stats1" u 2:($2/$5/GB) i 5 w lp t "host to device", "" u 2:($2/$6/GB) i 5 w lp t "device to host"
+quit
+
+
+Timing 1 byte transfers... 1.614754e-05 1.613755e-05
+Timing 2 byte transfers... 1.612755e-05 1.612755e-05
+Timing 4 byte transfers... 1.612755e-05 1.612754e-05
+Timing 8 byte transfers... 1.612755e-05 1.613755e-05
+Timing 16 byte transfers... 1.613755e-05 1.613754e-05
+Timing 32 byte transfers... 1.613755e-05 1.613755e-05
+Timing 64 byte transfers... 1.615754e-05 1.617754e-05
+Timing 128 byte transfers... 1.627753e-05 1.627752e-05
+Timing 256 byte transfers... 1.632752e-05 1.631752e-05
+Timing 512 byte transfers... 1.640751e-05 1.640750e-05
+Timing 1024 byte transfers... 1.674746e-05 1.673746e-05
+Timing 2048 byte transfers... 1.745734e-05 1.744735e-05
+Timing 4096 byte transfers... 1.875715e-05 1.874715e-05
+Timing 8192 byte transfers... 2.135675e-05 2.134676e-05
+Timing 16384 byte transfers... 2.654596e-05 2.655596e-05
+Timing 32768 byte transfers... 3.703437e-05 3.704437e-05
+Timing 65536 byte transfers... 5.845112e-05 5.841112e-05
+Timing 131072 byte transfers... 1.018445e-04 1.018345e-04
+Timing 262144 byte transfers... 1.866516e-04 1.866416e-04
+Timing 524288 byte transfers... 3.583655e-04 3.578156e-04
+Timing 1048576 byte transfers... 7.874303e-04 7.880002e-04
+Timing 2097152 byte transfers... 1.474856e-03 1.474886e-03
+Timing 4194304 byte transfers... 2.670574e-03 2.670044e-03
+Timing 8388608 byte transfers... 5.087057e-03 5.057821e-03
+Timing 16777216 byte transfers... 1.023158e-02 1.297684e-02
+Timing 33554432 byte transfers... 2.411323e-02 2.100527e-02
+Timing 67108864 byte transfers... 4.173405e-02 4.039884e-02
+
+
+Timing 1 byte transfers... 1.609760e-05 1.679740e-05
+Timing 2 byte transfers... 1.619760e-05 1.679740e-05
+Timing 4 byte transfers... 1.609760e-05 1.569760e-05
+Timing 8 byte transfers... 1.609760e-05 1.549760e-05
+Timing 16 byte transfers... 1.619760e-05 1.549760e-05
+Timing 32 byte transfers... 1.619760e-05 1.569760e-05
+Timing 64 byte transfers... 1.619750e-05 1.559770e-05
+Timing 128 byte transfers... 1.629740e-05 1.579760e-05
+Timing 256 byte transfers... 1.629750e-05 1.589760e-05
+Timing 512 byte transfers... 1.639750e-05 1.589760e-05
+Timing 1024 byte transfers... 1.689750e-05 1.649740e-05
+Timing 2048 byte transfers... 1.759740e-05 1.689740e-05
+Timing 4096 byte transfers... 1.879720e-05 1.839720e-05
+Timing 8192 byte transfers... 2.139670e-05 2.149680e-05
+Timing 16384 byte transfers... 2.689590e-05 2.999530e-05
+Timing 32768 byte transfers... 3.759430e-05 4.189370e-05
+Timing 65536 byte transfers... 5.889100e-05 6.628990e-05
+Timing 131072 byte transfers... 1.020845e-04 1.225814e-04
+Timing 262144 byte transfers... 1.878714e-04 2.270656e-04
+Timing 524288 byte transfers... 3.606451e-04 4.335341e-04
+Timing 1048576 byte transfers... 7.781817e-04 8.666682e-04
+Timing 2097152 byte transfers... 1.478175e-03 1.523368e-03
+Timing 4194304 byte transfers... 2.683492e-03 2.798674e-03
+Timing 8388608 byte transfers... 5.074629e-03 5.363985e-03
+Timing 16777216 byte transfers... 9.874299e-03 1.049930e-02
+Timing 33554432 byte transfers... 1.957842e-02 2.096511e-02
+Timing 67108864 byte transfers... 3.902357e-02 4.130032e-02
+
+
+Timing 1 byte transfers... 1.609760e-05 1.609760e-05
+Timing 2 byte transfers... 1.619750e-05 1.639750e-05
+Timing 4 byte transfers... 1.619760e-05 1.609750e-05
+Timing 8 byte transfers... 1.619750e-05 1.639760e-05
+Timing 16 byte transfers... 1.609750e-05 1.639750e-05
+Timing 32 byte transfers... 1.619760e-05 1.639750e-05
+Timing 64 byte transfers... 1.619750e-05 1.649750e-05
+Timing 128 byte transfers... 1.629750e-05 1.649750e-05
+Timing 256 byte transfers... 1.639750e-05 1.649750e-05
+Timing 512 byte transfers... 1.639750e-05 1.699740e-05
+Timing 1024 byte transfers... 1.679750e-05 1.689740e-05
+Timing 2048 byte transfers... 1.739740e-05 1.799720e-05
+Timing 4096 byte transfers... 1.879720e-05 1.909710e-05
+Timing 8192 byte transfers... 2.129670e-05 2.199670e-05
+Timing 16384 byte transfers... 2.679590e-05 2.789580e-05
+Timing 32768 byte transfers... 3.749430e-05 3.989390e-05
+Timing 65536 byte transfers... 5.879110e-05 6.329040e-05
+Timing 131072 byte transfers... 1.026844e-04 1.224813e-04
+Timing 262144 byte transfers... 1.883714e-04 2.282653e-04
+Timing 524288 byte transfers... 3.588455e-04 4.378334e-04
+Timing 1048576 byte transfers... 7.829810e-04 8.885649e-04
+Timing 2097152 byte transfers... 1.520669e-03 1.534267e-03
+Timing 4194304 byte transfers... 2.688891e-03 2.827570e-03
+Timing 8388608 byte transfers... 5.078228e-03 5.378382e-03
+Timing 16777216 byte transfers... 9.864601e-03 1.052170e-02
+Timing 33554432 byte transfers... 1.944834e-02 2.082373e-02
+Timing 67108864 byte transfers... 3.858813e-02 4.147929e-02
+Timing 134217728 byte transfers... 7.688921e-02 8.264134e-02
+Timing 268435456 byte transfers... 1.534080e-01 1.648469e-01
+
+
+Timing 1 byte transfers... 1.609750e-05 1.649750e-05
+Timing 2 byte transfers... 1.619750e-05 1.609760e-05
+Timing 4 byte transfers... 1.619750e-05 1.609760e-05
+Timing 8 byte transfers... 1.609750e-05 1.659750e-05
+Timing 16 byte transfers... 1.619760e-05 1.609750e-05
+Timing 32 byte transfers... 1.619750e-05 1.619760e-05
+Timing 64 byte transfers... 1.629750e-05 1.669750e-05
+Timing 128 byte transfers... 1.629750e-05 1.629750e-05
+Timing 256 byte transfers... 1.629760e-05 1.649750e-05
+Timing 512 byte transfers... 1.639750e-05 1.699740e-05
+Timing 1024 byte transfers... 1.669750e-05 1.709730e-05
+Timing 2048 byte transfers... 1.749730e-05 1.759730e-05
+Timing 4096 byte transfers... 1.869720e-05 1.919710e-05
+Timing 8192 byte transfers... 2.139680e-05 2.139670e-05
+Timing 16384 byte transfers... 2.669600e-05 2.839560e-05
+Timing 32768 byte transfers... 3.719440e-05 3.909410e-05
+Timing 65536 byte transfers... 5.829110e-05 6.129060e-05
+Timing 131072 byte transfers... 1.032844e-04 1.069837e-04
+Timing 262144 byte transfers... 1.894712e-04 1.994697e-04
+Timing 524288 byte transfers... 3.636447e-04 3.808421e-04
+Timing 1048576 byte transfers... 7.118918e-04 7.709827e-04
+Timing 2097152 byte transfers... 1.301502e-03 1.362293e-03
+Timing 4194304 byte transfers... 2.527616e-03 2.509718e-03
+Timing 8388608 byte transfers... 4.765976e-03 4.844264e-03
+Timing 16777216 byte transfers... 9.463261e-03 9.685528e-03
+Timing 33554432 byte transfers... 1.694612e-02 2.079314e-02
+Timing 67108864 byte transfers... 3.364429e-02 4.131802e-02
+Timing 134217728 byte transfers... 6.706091e-02 8.235878e-02
+Timing 268435456 byte transfers... 1.338387e-01 1.646278e-01
+Timing 536870912 byte transfers... 2.676775e-01 3.333394e-01
+
+
+Timing 1 byte transfers... 1.599760e-05 1.579760e-05
+Timing 2 byte transfers... 1.599750e-05 1.579760e-05
+Timing 4 byte transfers... 1.609760e-05 1.569760e-05
+Timing 8 byte transfers... 1.599760e-05 1.579760e-05
+Timing 16 byte transfers... 1.609750e-05 1.589760e-05
+Timing 32 byte transfers... 1.609760e-05 1.589750e-05
+Timing 64 byte transfers... 1.599760e-05 1.609760e-05
+Timing 128 byte transfers... 1.609750e-05 1.599760e-05
+Timing 256 byte transfers... 1.619750e-05 1.599760e-05
+Timing 512 byte transfers... 1.629750e-05 1.619750e-05
+Timing 1024 byte transfers... 1.659750e-05 1.659750e-05
+Timing 2048 byte transfers... 1.719740e-05 1.739730e-05
+Timing 4096 byte transfers... 1.849720e-05 1.869720e-05
+Timing 8192 byte transfers... 2.119670e-05 2.009700e-05
+Timing 16384 byte transfers... 2.649600e-05 2.599600e-05
+Timing 32768 byte transfers... 3.679440e-05 3.979400e-05
+Timing 65536 byte transfers... 5.799120e-05 6.738970e-05
+Timing 131072 byte transfers... 1.027844e-04 1.121829e-04
+Timing 262144 byte transfers... 1.884714e-04 2.022693e-04
+Timing 524288 byte transfers... 3.616450e-04 3.857414e-04
+Timing 1048576 byte transfers... 7.082923e-04 7.759820e-04
+Timing 2097152 byte transfers... 1.287604e-03 1.359493e-03
+Timing 4194304 byte transfers... 2.514018e-03 2.517217e-03
+Timing 8388608 byte transfers... 4.750778e-03 4.823767e-03
+Timing 16777216 byte transfers... 9.239395e-03 9.476759e-03
+Timing 33554432 byte transfers... 1.688043e-02 2.087713e-02
+Timing 67108864 byte transfers... 3.352140e-02 4.175245e-02
+Timing 134217728 byte transfers... 6.712290e-02 8.296259e-02
+Timing 268435456 byte transfers... 1.339590e-01 1.659290e-01
+Timing 536870912 byte transfers... 2.669143e-01 3.258461e-01
+
