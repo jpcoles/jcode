@@ -1,0 +1,5 @@
+<ParaViewReaders>
+  <Reader name="TipsyReader" extensions="std"
+          file_description="Tipsy Standard Files">
+  </Reader>
+</ParaViewReaders>
