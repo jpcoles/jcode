@@ -1,0 +1,53 @@
+#!/bin/bash
+
+PLATFORM=`uname`
+
+if [ "x$PLATFORM" == "xDarwin" ]; then
+    ROOT=/Users/jonathan
+    PIXELENS_PATH=$ROOT/uni/qgd/pixelens
+
+    PIXELENS="java -jar $PIXELENS_PATH/PixeLens.jar"
+    LENSMASS="$ROOT/uni/qgd/lensmass/lensmass"
+
+elif [ "x$PLATFORM" == "xLinux" ]; then
+
+    ROOT=/benutzer/theorie/jonathan
+    PIXELENS_PATH=$ROOT/qgd/pixelens
+
+    PIXELENS="java -jar $PIXELENS_PATH/PixeLens.jar"
+    LENSMASS="$ROOT/qgd/lensmass/lensmass"
+fi
+
+export LD_LIBRARY_PATH=$PIXELENS_PATH:$LD_LIBRARY_PATH
+export CLASSPATH=$PIXELENS_PATH:$CLASSPATH
+
+function run()
+{
+    POUT="$4.o=$1_l=$2.$3.out"
+    LOUT="$4.o=$1_l=$2.$3.ev.out"
+
+    CMD="$PIXELENS --omega $1 --lambda $2 --nummodels $3 $4 > $POUT"
+
+    echo $CMD
+
+    (cd $PIXELENS_PATH && $CMD) &
+    #$PIXELENS --omega $1 --lambda $2 --nummodels $3 $4 > $POUT) &
+
+    #$LENSMASS --show=e < $POUT > $LOUT
+}
+
+MODEL=$ROOT/qgd/pixelens/J1004
+NUMMODELS=250
+
+run 0.01 0.01 $NUMMODELS $MODEL
+run 0.01 0.99 $NUMMODELS $MODEL
+run 0.99 0.99 $NUMMODELS $MODEL
+run 0.99 0.01 $NUMMODELS $MODEL
+
+run 0.50 0.50 $NUMMODELS $MODEL
+
+#run 0.25 0.25 $NUMMODELS $MODEL
+#run 0.25 0.75 $NUMMODELS $MODEL
+#run 0.75 0.75 $NUMMODELS $MODEL
+#run 0.75 0.25 $NUMMODELS $MODEL
+

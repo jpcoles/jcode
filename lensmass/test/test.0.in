@@ -1,0 +1,7 @@
+#BEGIN LENS dim 1 omega 0 lambda 0
+#BEGIN MODEL dim 3
+1
+2
+3
+#END MODEL
+#END LENS
