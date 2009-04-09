@@ -9,12 +9,28 @@ if False:
     p_over_rE  = [2,4,8,16]
     num_samples = 10
 
-if True:
+if False: # SkiTrip
     gamma_tot  = [1200000L, 7000000L, 12000000L]
     nepochs    = [2, 3, 5, 8] # 1 unlensed observation + (n-1) lensed observations
     rE_true    = [0.125, 0.25, 0.375, 0.5]
     p_over_rE  = [2,4,8]
     num_samples = 30
+
+if False:
+    gamma_tot  = [1200000L, 7000000L, 12000000L]
+    nepochs    = [2, 3, 5, 8] # 1 unlensed observation + (n-1) lensed observations
+    rE_true    = [0.005, 0.0125, 0.025, 0.0375, 0.05]
+    p_over_rE  = [2,4,8]
+    num_samples = 30
+
+if True:
+    gamma_tot  = [3000000L]
+    #gamma_tot  = [12000000L]
+    nepochs    = [5] # 1 unlensed observation + (n-1) lensed observations
+    rE_true    = [0.25]
+    #rE_true    = [0.375]
+    p_over_rE  = [2]
+    num_samples = 1
 
 times   = 5
 iter    = 0
@@ -38,7 +54,8 @@ rE_true=%.4f
 closest_star_approach=%.4f
 rE_sample=(%.4f, %.4f)
 num_samples=%i
-''' % (id, e, g, rE, (p*rE), rE*.7, rE*1.6, num_samples)
+''' % (id, e, g, rE, (p*rE), rE*1, rE*1, num_samples)
+#''' % (id, e, g, rE, (p*rE), rE*.7, rE*1.6, num_samples)
                     
                 f = open('params.py', 'w')
                 print >>f, iter_params

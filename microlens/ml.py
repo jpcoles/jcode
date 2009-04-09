@@ -22,8 +22,8 @@ if True:
 
     #-------------------------------------------------------------------------
 
-    beta        =       .2                      # arcsec - Basis function normalization
-    Nbases      =       20                      # sqrt(Number of basis functions)
+    beta        =       .20                     # arcsec - Basis function normalization
+    Nbases      =       28                      # sqrt(Number of basis functions)
     grid_phys   =       2.0                     # arcsec - Physical size across grid
     grid_radius =       60                      # pixels
     grid_size   =       2*grid_radius + 1       # pixels
@@ -98,22 +98,27 @@ def star_track(n):
 
     if n > 2: 
         pos = linspace(.5, -.5, n-1)
-    else:
+    elif n == 2:
         pos = [0.0]
+    else:
+        return
 
     for i, p in enumerate(pos):
         yield i+1, complex(p, -closest_star_approach)
 
 def model(m):
-    profsb = m(theta)
-    surface_brightness = lambda R: mapSB(profsb, R)
+    #profsb = m(theta)
+    #surface_brightness = lambda R: mapSB(profsb, R)
     data = empty((nepochs, grid_size, grid_size), 'float')
     for t,z in star_track(nepochs):
         if t == 0:
-            xx = raytrace(0,0)
+            xx = raytrace()
         else:
             xx = raytrace(rE_true, z)
-        data[t] = normalize(surface_brightness(xx))
+
+        data[t] = normalize(m(xx))
+
+        #data[t] = normalize(surface_brightness(xx))
 
     return data
 
@@ -124,7 +129,7 @@ def model_two_basis_functions():
     for t,z in star_track(nepochs):
 
         if t == 0:
-            x = raytrace(0,0)
+            x = raytrace()
         else:
             x = raytrace(rE_true, z)
 
@@ -155,12 +160,15 @@ def profile_exponential(R, Ie=.40, Rd=.50):
     return Ie * exp(-abs(R)/Rd)
 
 def profile_exponential2(R):
-    return (1+abs(R))**-3
+    return (1+abs(R))**-2
 
-def raytrace(theta_E, z):
+def profile_exponential3(R):
+    return (1 + sqrt(R.real**2 + 0.8*R.imag**2))**-2
+
+def raytrace(theta_E=None, z=None):
     """theta_E - Einstein radius of star
        z       - position of star (complex)"""
-    if theta_E == 0: return theta
+    if theta_E is None and z is None: return theta
     f = theta - (theta_E**2) * (theta-z) / abs(theta-z)
     return asarray_chkfinite(f)
 
@@ -175,7 +183,7 @@ def mapSB(sb, mp):
     return res
 
 def normalize(sb):
-    global gamma_tot
+    #global gamma_tot
     #print gamma_tot, sb
     sb *= float(gamma_tot) / sum(sb)
     return sb
@@ -194,7 +202,7 @@ def demo_lensing(N):
     pylab.savefig("LensingDemo.png")
 
 def save_basis_functions(N=Nbases):
-    global theta, beta
+    #global theta, beta
 
     L = N**2
 
@@ -226,9 +234,9 @@ def save_basis_functions(N=Nbases):
     pylab.savefig("B%i.png" % N)
 
 
-def run_sim(data, N=Nbases):
+def run_sim(data, N0=Nbases):
 
-    L = N**2
+    N = N0**2
 
     nepochs   = data.shape[0]
     grid_size = data.shape[1]
@@ -241,13 +249,13 @@ def run_sim(data, N=Nbases):
     #
     #-------------------------------------------------------------------------
 
-    B     = empty((L, nepochs, grid_size, grid_size)) # Don't want matrix behaviour here
-    Bt    = empty((L, nepochs*grid_size*grid_size)) # Don't want matrix behaviour here
-    #Bt    = empty((L, nepochs, grid_size, grid_size)) # Don't want matrix behaviour here
-    Br    = empty((L, nepochs * grid_size * grid_size)) # Don't want matrix behaviour here
+    B     = empty((N, nepochs, grid_size, grid_size)) # Don't want matrix behaviour here
+    Bt    = empty((N, nepochs*grid_size*grid_size)) # Don't want matrix behaviour here
+    #Bt    = empty((N, nepochs, grid_size, grid_size)) # Don't want matrix behaviour here
+    Br    = empty((N, nepochs * grid_size * grid_size)) # Don't want matrix behaviour here
     tmp   = empty((nepochs, grid_size, grid_size)) # Don't want matrix behaviour here
-    P     = mat(empty((L,1), 'float'))
-    C_inv = mat(empty((L,L), 'float'))
+    P     = mat(empty((N,1), 'float'))
+    C_inv = mat(empty((N,N), 'float'))
     probs = empty((num_samples, 2), 'float')
     beta2 = beta**2
 
@@ -256,7 +264,9 @@ def run_sim(data, N=Nbases):
     #-------------------------------------------------------------------------
 
     vals = [[n, 1.0/sqrt((2**n) * sqrt(pi) * factorial(n,1) * beta), hermite(n), 0,0] 
-            for n in xrange(N)]
+            for n in xrange(N0)]
+
+    sqrt_data = sqrt(data)
 
     #-------------------------------------------------------------------------
     # Choose different values for rE
@@ -272,10 +282,11 @@ def run_sim(data, N=Nbases):
             #-----------------------------------------------------------------
             # Generate an "observation". The first is unlensed.
             #-----------------------------------------------------------------
-            print "%4i] rE=%f Epoch %i @ %f,%f" % (i, rE, t, z.real,z.imag)
             if t == 0:
-                xx = raytrace(0,0)
+                print "%4i] rE=%f Epoch %i NO LENS" % (i, rE, t)
+                xx = raytrace()
             else:
+                print "%4i] rE=%f Epoch %i @ %f,%f" % (i, rE, t, z.real,z.imag)
                 xx = raytrace(rE, z)
 
             #-----------------------------------------------------------------
@@ -287,29 +298,29 @@ def run_sim(data, N=Nbases):
                 vals[n][3] = K * H(xx.real/beta) * expreal
                 vals[n][4] = K * H(xx.imag/beta) * expimag
 
-            l=0
+            n=0
             for v1 in vals:
                 for v2 in vals:
-                    B[l,t] = v1[3] * v2[4]
-                    l += 1
+                    B[n,t] = v1[3] * v2[4]
+                    n += 1
 
         #---------------------------------------------------------------------
         # 
         #---------------------------------------------------------------------
 
-        for l in xrange(L):
-            P[l]  = sum(B[l])
-            Bt[l] = ravel(B[l] / sqrt(data))
+        for n in xrange(N):
+            sum(B[n], out=P[n])
+            Bt[n] = ravel(B[n] / sqrt_data)
 
         print "Building C_inv"
 
-#        C_inv = mat(tensordot(Bt,Bt,axes=(-1,-1)))
+        C_inv = mat(tensordot(Bt,Bt,axes=(-1,-1)))
 
-        for k in xrange(L):
-            for l in xrange(k, L):
-                #print Bt[k]
-                #C_inv[l,k] = C_inv[k,l] = inner(ravel(Bt[k]), ravel(Bt[l]))
-                C_inv[l,k] = C_inv[k,l] = inner(Bt[k], Bt[l])
+#       for k in xrange(N):
+#           for n in xrange(k, N):
+#               #print Bt[k]
+#               #C_inv[n,k] = C_inv[k,n] = inner(ravel(Bt[k]), ravel(Bt[n]))
+#               C_inv[n,k] = C_inv[k,n] = inner(Bt[k], Bt[n])
 
         print "Done"
 
@@ -320,7 +331,8 @@ def run_sim(data, N=Nbases):
         C = C_inv.I
 
         #---------------------------------------------------------------------
-        # 
+        # Optionally calculate the basis function coefficients and plot the
+        # reconstruction of the image.
         #---------------------------------------------------------------------
 
         if True:
@@ -329,34 +341,43 @@ def run_sim(data, N=Nbases):
             for t,z in star_track(nepochs):
                 f = zeros((grid_size, grid_size), 'float')
 
-                #for l in xrange(L):
-                #    print fn[l,0]
+                #for n in xrange(N): print fn[n,0]
 
-                for l in xrange(L):
-                    f += fn[l,0] * B[l,t]
+                for n in xrange(N): f += fn[n,0] * B[n,t]
 
-                diff = data[t] - f
+                diff = 100 * abs(data[t] - f) / data[t]
 
-                pylab.subplot(nepochs, 3, 3*t + 1)
+                ax=pylab.subplot(nepochs, 4, 4*t + 1) # Original 
                 pylab.imshow(data[t])
-                #pylab.title("Original %i,%i, rE=%.2f" % (i,t,rE))
-                #pylab.colorbar()
-                pylab.subplot(nepochs, 3, 3*t + 2)
+                ax.xaxis.set_major_locator(pylab.NullLocator())
+                ax.yaxis.set_major_locator(pylab.NullLocator())
+                pylab.jet()
+
+                ax=pylab.subplot(nepochs, 4, 4*t + 2) # Reconstructed 
                 pylab.imshow(f)
-                #pylab.title("Reconstructed %i,%i, rE=%.2f" % (i,t,rE))
-                #pylab.colorbar()
-                pylab.subplot(nepochs, 3, 3*t + 3)
+                ax.xaxis.set_major_locator(pylab.NullLocator())
+                ax.yaxis.set_major_locator(pylab.NullLocator())
+                pylab.jet()
+
+                ax=pylab.subplot(nepochs, 4, 4*t + 3) # % Error in difference 
                 pylab.imshow(diff)
-                #pylab.title("Difference %i,%i, rE=%.2f" % (i,t,rE))
+                ax.xaxis.set_major_locator(pylab.NullLocator())
+                ax.yaxis.set_major_locator(pylab.NullLocator())
                 pylab.colorbar()
+                pylab.gray()
+
+                ax=pylab.subplot(nepochs, 4, 4*t + 4) # % Error in difference 
+                pylab.hist(ravel(diff), bins=40, normed=True, histtype='step')
+                ax.yaxis.set_major_locator(pylab.NullLocator())
+                ax.set_xlim(0,100)
 
             title = """\
 rE=%.4f (%.4f) sample %i/%i gamma_tot=%i
-Original, Reconstructed, Difference""" % \
+Original, Reconstructed, %% Err""" % \
 (rE, rE_true, i+1, num_samples, gamma_tot)
 
             pylab.suptitle(title)
-            pylab.savefig("ord.%s.%i.png" % (run_id, i));
+            pylab.savefig("recon.%s.%i.png" % (run_id, i));
 
         #---------------------------------------------------------------------
         # 
@@ -415,14 +436,16 @@ if __name__ == "__main__":
     # Select data set
     #-------------------------------------------------------------------------
 
-    data = model(profile_exponential2)
+    data = model(profile_exponential3)
     #data = model_two_basis_functions()
 
     #-------------------------------------------------------------------------
     # Add some noise
+    # This causes a lot of disagreement in the reconstructed images.
     #-------------------------------------------------------------------------
 
-    vaddnoise = vectorize(lambda x: poisson(lam=x))
+    vaddnoise = vectorize(lambda x: x)
+    #vaddnoise = vectorize(lambda x: poisson(lam=x))
     data = vaddnoise(normalize(data))
     data[data < 1] = 1
 
