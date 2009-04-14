@@ -33,18 +33,24 @@ def plot1(data):
 
     xs,ys,cs,ss = [], [], [], []
 
+    count = 0
     for nepochs,gamma_tot,rE_true,closest_star_approach,vals,b,e,m,M in data:
 
-        if m[0] in [0, len(vals)-1]:
-            ss.append(10)
-            cs.append('black')
-            assert False
-        else:
-            err = 100 * abs(gamma_tot - m[1]) / gamma_tot
-            xs.append(100 * (rE_true / closest_star_approach) + nepochs)
-            ys.append(err)
-            ss.append(2**nepochs)
+        rE_err = 100 * abs(rE_true - vals[M][0]) / rE_true
+        xs.append(1000 * (rE_true / closest_star_approach) + nepochs)
+        ys.append(rE_err)
+        ss.append(2**nepochs)
+
+        #if nepochs==2 and gamma_tot==1200000: print '*', M, rE_err
+
+        if 0 < M < len(vals)-1:
             cs.append(gamma_color(gamma_tot))
+        else:
+            #ss.append(10)
+            cs.append('black')
+            count+=1
+
+    print 'count=%i' % count
 
     figure()
     ylabel('% err')
@@ -57,16 +63,16 @@ def plot2(data):
 
     for nepochs,gamma_tot,rE_true,closest_star_approach,vals,b,e,m,M in data:
 
-        if m[0] in [0, len(vals)-1]:
-            ss.append(10)
-            cs.append('black')
-            assert False
-        else:
-            err = 100 * abs(gamma_tot - m[1]) / gamma_tot
-            xs.append(100 * closest_star_approach + nepochs)
-            ys.append(err)
-            ss.append(2**nepochs)
+        err = 100 * abs(rE_true - vals[M][0]) / rE_true
+        #err = 100 * abs(gamma_tot - vals[M][1]) / gamma_tot
+        xs.append(1000 * closest_star_approach + nepochs)
+        ys.append(err)
+        ss.append(2**nepochs)
+
+        if 0 < M < len(vals)-1:
             cs.append(gamma_color(gamma_tot))
+        else:
+            cs.append('black')
 
     figure()
     ylabel('% err')
@@ -82,16 +88,15 @@ def plot3(data):
         rE_err = 100 * abs(rE_true   - vals[M][0]) / rE_true
         lh_err = 100 * abs(gamma_tot - vals[M][1]) / gamma_tot # Likelihood error
 
-        xs.append(100 * rE_true + nepochs)
-        #xs.append(100 * (rE_true / closest_star_approach) + nepochs)
+        xs.append(1000 * rE_true + nepochs)
         ys.append(rE_err)
+        #ss.append(gamma_size(gamma_tot))
+        ss.append(2**nepochs)
 
         if 0 < M < len(vals)-1:
-            ss.append(gamma_size(gamma_tot))
             #ss.append(nepochs_size(nepochs))
             cs.append(gamma_color(gamma_tot))
         else:
-            ss.append(10)
             cs.append('black')
 
     figure()
@@ -105,16 +110,15 @@ def plot4(data):
 
     for nepochs,gamma_tot,rE_true,closest_star_approach,vals,b,e,m,M in data:
 
-        if m[0] in [0, len(vals)-1]:
-            ss.append(10)
-            cs.append('black')
-            assert False
-        else:
-            err = 100 * abs(gamma_tot - m[1]) / gamma_tot
-            xs.append(10 * log(closest_star_approach / rE_true, 2) + nepochs)
-            ys.append(err)
-            ss.append(2**nepochs)
+        err = 100 * abs(rE_true - vals[M][0]) / rE_true
+        xs.append(10 * log(closest_star_approach / rE_true, 2) + nepochs)
+        ys.append(err)
+        ss.append(2**nepochs)
+
+        if 0 < M < len(vals)-1:
             cs.append(gamma_color(gamma_tot))
+        else:
+            cs.append('black')
 
     figure()
     ylabel('% err')
@@ -127,16 +131,16 @@ def plot5(data):
 
     for nepochs,gamma_tot,rE_true,closest_star_approach,vals,b,e,m,M in data:
 
-        if m[0] in [0, len(vals)-1]:
-            ss.append(10)
-            cs.append('black')
-            assert False
-        else:
-            err = 100 * abs(gamma_tot - m[1]) / gamma_tot
-            xs.append(nepochs)
-            ys.append(err)
-            ss.append(100)
+        #err = 100 * abs(gamma_tot - vals[M][1]) / gamma_tot
+        err = 100 * abs(rE_true - vals[M][0]) / rE_true
+        xs.append(nepochs)
+        ys.append(err)
+        ss.append(100)
+
+        if 0 < M < len(vals)-1:
             cs.append(gamma_color(gamma_tot))
+        else:
+            cs.append('black')
 
     figure()
     ylabel('% err')
@@ -149,16 +153,16 @@ def plot6(data):
 
     for nepochs,gamma_tot,rE_true,closest_star_approach,vals,b,e,m,M in data:
 
-        if m[0] in [0, len(vals)-1]:
-            ss.append(10)
-            cs.append('black')
-            assert False
-        else:
-            err = 100 * abs(gamma_tot - m[1]) / gamma_tot
-            xs.append(10*nepochs + gamma_offs(gamma_tot))
-            ys.append(rE_true / closest_star_approach)
-            ss.append(10*err + 10)
+        #err = 100 * abs(gamma_tot - vals[M][1]) / gamma_tot
+        err = 100 * abs(rE_true - vals[M][0]) / rE_true
+        xs.append(10*nepochs + gamma_offs(gamma_tot))
+        ys.append(rE_true / closest_star_approach)
+        ss.append(10*err + 10)
+
+        if 0 < M < len(vals)-1:
             cs.append(gamma_color(gamma_tot))
+        else:
+            cs.append('black')
 
     figure()
     ylabel('rE_true / closest_star_approach')
@@ -211,11 +215,11 @@ for j, file in enumerate(files):
 
     f.close()
 
-#plot1(data)
-#plot2(data)
+plot1(data)
+plot2(data)
 plot3(data)
-#plot4(data)
-#plot5(data)
-#plot6(data)
+plot4(data)
+plot5(data)
+plot6(data)
 show()
 
