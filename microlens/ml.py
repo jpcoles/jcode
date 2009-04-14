@@ -18,12 +18,16 @@ if True:
 
     #-------------------------------------------------------------------------
 
-    from params import *
+    if len(sys.argv) == 2:
+        print 'Importing from %s' % sys.argv[1]
+        execfile(sys.argv[1])
+    else:
+        from params import *
 
     #-------------------------------------------------------------------------
 
     beta        =       .20                     # arcsec - Basis function normalization
-    Nbases      =       28                      # sqrt(Number of basis functions)
+    Nbases      =       25                      # sqrt(Number of basis functions)
     grid_phys   =       2.0                     # arcsec - Physical size across grid
     grid_radius =       60                      # pixels
     grid_size   =       2*grid_radius + 1       # pixels
@@ -76,8 +80,11 @@ elif False:
 ##############################################################################
 ##############################################################################
 
-#seed(0)
-seed()
+seed(0)
+#seed()
+
+if rE_sample[0] == rE_sample[1]:
+    print "WARNING: Sample range is one value"
 
 print "cell_size = %.4f arcsec/pixel" % cell_size
 
@@ -339,11 +346,11 @@ def run_sim(data, N0=Nbases):
             fn = C*P
             pylab.figure()
             for t,z in star_track(nepochs):
-                f = zeros((grid_size, grid_size), 'float')
+                #f = zeros((grid_size, grid_size), 'float')
 
                 #for n in xrange(N): print fn[n,0]
 
-                for n in xrange(N): f += fn[n,0] * B[n,t]
+                for n in xrange(N): f = fn[n,0] * B[n,t]
 
                 diff = 100 * abs(data[t] - f) / data[t]
 
@@ -475,6 +482,8 @@ if __name__ == "__main__":
     print >>f, "%21.15e %21.15e" % (probs[mi,0], probs[mi,1])
     print >>f, "%21.15e %21.15e" % (probs[Mi,0], probs[Mi,1])
     f.close()
+
+    print "%s FINISHED" % run_id
 
     #-------------------------------------------------------------------------
     # Write some output
