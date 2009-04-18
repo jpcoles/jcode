@@ -18,10 +18,31 @@ if False: # SkiTrip
     p_over_rE  = [2,4,8]
     num_samples = 30
 
-if True:  # After Easter
+if False:  # After Easter
     gamma_tot  = [1200000L, 7000000L, 12000000L]
     nepochs    = [2, 3, 5, 8] # 1 unlensed observation + (n-1) lensed observations
     rE_true    = [0.0125, 0.025, 0.0375, 0.05]
+    p_over_rE  = [2,4,8]
+    num_samples = 30
+
+if False:  # After Easter2
+    gamma_tot  = [3000000L, 7000000L, 12000000L]
+    nepochs    = [2, 3, 5, 8] # 1 unlensed observation + (n-1) lensed observations
+    rE_true    = [0.0125, 0.025, 0.0375, 0.05]
+    p_over_rE  = [2,4,8]
+    num_samples = 30
+
+if True:  # After Easter3 - with raytrace fix
+    gamma_tot  = [3000000L, 7000000L, 12000000L]
+    nepochs    = [2, 3, 5, 8] # 1 unlensed observation + (n-1) lensed observations
+    rE_true    = [0.0125, 0.025, 0.0375, 0.05]
+    p_over_rE  = [2,4,8]
+    num_samples = 30
+
+if False:  # After Easter2 - Large rE
+    gamma_tot  = [3000000L, 7000000L, 12000000L]
+    nepochs    = [2, 3, 5, 8] # 1 unlensed observation + (n-1) lensed observations
+    rE_true    = [0.125, 0.25, 0.375, 0.5]
     p_over_rE  = [2,4,8]
     num_samples = 30
 
@@ -58,7 +79,7 @@ rE_true=%.4f
 closest_star_approach=%.4f
 rE_sample=(%.4f, %.4f)
 num_samples=%i
-''' % (id, e, g, rE, (p*rE), rE*.7, rE*2.6, num_samples)
+''' % (id, e, g, rE, (p*rE), rE*.5, rE*1.5, num_samples)
 #''' % (id, e, g, rE, (p*rE), rE*1, rE*1, num_samples)
                     
                 params = 'params.%s.py' % id

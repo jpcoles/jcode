@@ -85,22 +85,13 @@ seed(0)
 
 if rE_sample[0] == rE_sample[1]:
     print "WARNING: Sample range is one value"
+    num_samples = 1
 
 print "cell_size = %.4f arcsec/pixel" % cell_size
 
 ##############################################################################
 
-def star_track(n):
-#    pos = [complex(-100, -100),
-#           complex(-.75, .3)]
-#
-#    #pos = [complex(-.25, .3)]
-#
-#    for i,p in enumerate(pos):
-#        if i == n: break
-#        yield i, p
-
-    #yield 0, complex(-.75, -.5)
+def star_track_symmetric(n):
     yield 0, complex(0)
 
     if n > 2: 
@@ -112,6 +103,18 @@ def star_track(n):
 
     for i, p in enumerate(pos):
         yield i+1, complex(p, -closest_star_approach)
+
+def star_track_nonsymmetric(n):
+    yield 0, complex(0)
+
+    pos = linspace(.5, 0, n-1)
+
+    for i, p in enumerate(pos):
+        yield i+1, complex(p, -closest_star_approach)
+
+
+star_track = star_track_nonsymmetric
+
 
 def model(m):
     #profsb = m(theta)
@@ -169,14 +172,19 @@ def profile_exponential(R, Ie=.40, Rd=.50):
 def profile_exponential2(R):
     return (1+abs(R))**-2
 
-def profile_exponential3(R):
+def profile_exponential3(R): # AfterEaster run1
     return (1 + sqrt(R.real**2 + 0.8*R.imag**2))**-2
+
+def profile_exponential4(R): # AfterEaster run2
+    return (1 + sqrt(0.8*R.real**2 + R.imag**2))**-2
+
+##############################################################################
 
 def raytrace(theta_E=None, z=None):
     """theta_E - Einstein radius of star
        z       - position of star (complex)"""
     if theta_E is None and z is None: return theta
-    f = theta - (theta_E**2) * (theta-z) / abs(theta-z)
+    f = theta - (theta_E**2) * (theta-z) / (abs(theta-z)**2)
     return asarray_chkfinite(f)
 
 def mapSB(sb, mp):
@@ -321,7 +329,6 @@ def run_sim(data, N0=Nbases):
 
         print "Building C_inv"
 
-        C_inv = mat(tensordot(Bt,Bt,axes=(-1,-1)))
 
 #       for k in xrange(N):
 #           for n in xrange(k, N):
@@ -329,6 +336,7 @@ def run_sim(data, N0=Nbases):
 #               #C_inv[n,k] = C_inv[k,n] = inner(ravel(Bt[k]), ravel(Bt[n]))
 #               C_inv[n,k] = C_inv[k,n] = inner(Bt[k], Bt[n])
 
+        C_inv = mat(tensordot(Bt,Bt,axes=(-1,-1)))
         print "Done"
 
         #---------------------------------------------------------------------
@@ -346,35 +354,57 @@ def run_sim(data, N0=Nbases):
             fn = C*P
             pylab.figure()
             for t,z in star_track(nepochs):
-                #f = zeros((grid_size, grid_size), 'float')
+                f = zeros((grid_size, grid_size), 'float')
 
                 #for n in xrange(N): print fn[n,0]
 
-                for n in xrange(N): f = fn[n,0] * B[n,t]
+                for n in xrange(N): f += fn[n,0] * B[n,t]
 
-                diff = 100 * abs(data[t] - f) / data[t]
+                if t == 0: f0 = f
 
-                ax=pylab.subplot(nepochs, 4, 4*t + 1) # Original 
+                diff  = 100 * abs(data[t] - f) / data[t]
+                diff1 = 100 * abs(data[t] - f0) / data[t]
+
+                ax=pylab.subplot(nepochs, 7, 7*t + 1) # Original 
                 pylab.imshow(data[t])
                 ax.xaxis.set_major_locator(pylab.NullLocator())
                 ax.yaxis.set_major_locator(pylab.NullLocator())
                 pylab.jet()
 
-                ax=pylab.subplot(nepochs, 4, 4*t + 2) # Reconstructed 
+                ax=pylab.subplot(nepochs, 7, 7*t + 2) # Reconstructed 
                 pylab.imshow(f)
                 ax.xaxis.set_major_locator(pylab.NullLocator())
                 ax.yaxis.set_major_locator(pylab.NullLocator())
                 pylab.jet()
 
-                ax=pylab.subplot(nepochs, 4, 4*t + 3) # % Error in difference 
+                ax=pylab.subplot(nepochs, 7, 7*t + 3) # % Error in difference 
+                pylab.imshow(data[t] - f)
+                ax.xaxis.set_major_locator(pylab.NullLocator())
+                ax.yaxis.set_major_locator(pylab.NullLocator())
+                pylab.colorbar()
+                pylab.jet()
+
+                ax=pylab.subplot(nepochs, 7, 7*t + 4) # % Error in difference 
                 pylab.imshow(diff)
                 ax.xaxis.set_major_locator(pylab.NullLocator())
                 ax.yaxis.set_major_locator(pylab.NullLocator())
                 pylab.colorbar()
                 pylab.gray()
 
-                ax=pylab.subplot(nepochs, 4, 4*t + 4) # % Error in difference 
+                ax=pylab.subplot(nepochs, 7, 7*t + 5) # % Error in difference 
                 pylab.hist(ravel(diff), bins=40, normed=True, histtype='step')
+                ax.yaxis.set_major_locator(pylab.NullLocator())
+                ax.set_xlim(0,100)
+
+                ax=pylab.subplot(nepochs, 7, 7*t + 6) # % Error in difference 
+                pylab.imshow(diff1)
+                ax.xaxis.set_major_locator(pylab.NullLocator())
+                ax.yaxis.set_major_locator(pylab.NullLocator())
+                pylab.colorbar()
+                pylab.gray()
+
+                ax=pylab.subplot(nepochs, 7, 7*t + 7) # % Error in difference 
+                pylab.hist(ravel(diff1), bins=40, normed=True, histtype='step')
                 ax.yaxis.set_major_locator(pylab.NullLocator())
                 ax.set_xlim(0,100)
 
@@ -443,7 +473,9 @@ if __name__ == "__main__":
     # Select data set
     #-------------------------------------------------------------------------
 
-    data = model(profile_exponential3)
+    data = model(profile_exponential2)
+    #data = model(profile_exponential4)
+    #data = model(profile_exponential3)
     #data = model_two_basis_functions()
 
     #-------------------------------------------------------------------------
@@ -451,8 +483,8 @@ if __name__ == "__main__":
     # This causes a lot of disagreement in the reconstructed images.
     #-------------------------------------------------------------------------
 
-    vaddnoise = vectorize(lambda x: x)
-    #vaddnoise = vectorize(lambda x: poisson(lam=x))
+    #vaddnoise = vectorize(lambda x: x)
+    vaddnoise = vectorize(lambda x: poisson(lam=x))
     data = vaddnoise(normalize(data))
     data[data < 1] = 1
 
