@@ -1,5 +1,7 @@
-import sys
+from __future__ import division
+import sys, time
 from math import pow, pi
+import numpy
 from numpy import array, empty, zeros, ones, ndindex, vectorize, repeat, zeros_like, abs, argmax, argmin
 from numpy import sum, max, linspace, arange, mat, abs, min, inner, ndenumerate, tensordot
 from numpy import savetxt, asarray_chkfinite, copy, ravel, any, sort, cumsum
@@ -10,6 +12,10 @@ from scipy.linalg import det, eig
 from scipy.special import hermite
 from scipy.misc import factorial
 
+from matplotlib import rc
+rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
+rc('text', usetex=True)
+
 import pylab
 
 iter_params = ''
@@ -18,11 +24,18 @@ if True:
 
     #-------------------------------------------------------------------------
 
-    if len(sys.argv) == 2:
-        print 'Importing from %s' % sys.argv[1]
-        execfile(sys.argv[1])
-    else:
-        from params import *
+#   if len(sys.argv) == 2:
+#       print 'Importing from %s' % sys.argv[1]
+#       execfile(sys.argv[1])
+#   else:
+
+    id = int(sys.argv[1])
+
+    sys.path.append('.')
+
+    from params import get_params
+    run_id, nepochs, gamma_tot, \
+    rE_true, closest_star_approach, rE_sample, num_samples = get_params(id)
 
     #-------------------------------------------------------------------------
 
@@ -107,7 +120,8 @@ def star_track_symmetric(n):
 def star_track_nonsymmetric(n):
     yield 0, complex(0)
 
-    pos = linspace(.5, 0, n-1)
+    pos = linspace(0, 0.5, n-1)
+    #pos = linspace(.5, 0, n-1)
 
     for i, p in enumerate(pos):
         yield i+1, complex(p, -closest_star_approach)
@@ -177,6 +191,9 @@ def profile_exponential3(R): # AfterEaster run1
 
 def profile_exponential4(R): # AfterEaster run2
     return (1 + sqrt(0.8*R.real**2 + R.imag**2))**-2
+
+def profile_exponential5(R):
+    return (.2+abs(R))**-2
 
 ##############################################################################
 
@@ -269,9 +286,9 @@ def run_sim(data, N0=Nbases):
     #Bt    = empty((N, nepochs, grid_size, grid_size)) # Don't want matrix behaviour here
     Br    = empty((N, nepochs * grid_size * grid_size)) # Don't want matrix behaviour here
     tmp   = empty((nepochs, grid_size, grid_size)) # Don't want matrix behaviour here
-    P     = mat(empty((N,1), 'float'))
-    C_inv = mat(empty((N,N), 'float'))
-    probs = empty((num_samples, 2), 'float')
+    P     = mat(empty((N,1), numpy.float64))
+    C_inv = mat(empty((N,N), numpy.float64))
+    probs = empty((num_samples, 2), numpy.float64)
     beta2 = beta**2
 
     #-------------------------------------------------------------------------
@@ -288,6 +305,10 @@ def run_sim(data, N0=Nbases):
     #-------------------------------------------------------------------------
 
     for i,rE in enumerate(linspace(rE_sample[0], rE_sample[1], num_samples)):
+
+        # XXX: Just for some specific plots
+        #if i not in (9,14): continue
+        # XXX: Just for some specific plots
 
         #---------------------------------------------------------------------
         # Move the star across the sky 
@@ -325,10 +346,10 @@ def run_sim(data, N0=Nbases):
 
         for n in xrange(N):
             sum(B[n], out=P[n])
-            Bt[n] = ravel(B[n] / sqrt_data)
+            Bt[n] = (B[n] / sqrt_data).flatten()
+            #Bt[n] = ravel(B[n] / sqrt_data)
 
         print "Building C_inv"
-
 
 #       for k in xrange(N):
 #           for n in xrange(k, N):
@@ -336,23 +357,25 @@ def run_sim(data, N0=Nbases):
 #               #C_inv[n,k] = C_inv[k,n] = inner(ravel(Bt[k]), ravel(Bt[n]))
 #               C_inv[n,k] = C_inv[k,n] = inner(Bt[k], Bt[n])
 
-        C_inv = mat(tensordot(Bt,Bt,axes=(-1,-1)))
+        #C_inv = mat(tensordot(Bt,Bt,axes=(-1,-1)))
+        C_inv = mat(inner(Bt,Bt))
         print "Done"
 
         #---------------------------------------------------------------------
         # Invert the matrix
         #---------------------------------------------------------------------
 
+        print "Inverting C_inv"
         C = C_inv.I
+        print "Done"
 
         #---------------------------------------------------------------------
         # Optionally calculate the basis function coefficients and plot the
         # reconstruction of the image.
         #---------------------------------------------------------------------
 
-        if True:
+        if 0:
             fn = C*P
-            pylab.figure()
             for t,z in star_track(nepochs):
                 f = zeros((grid_size, grid_size), 'float')
 
@@ -362,93 +385,103 @@ def run_sim(data, N0=Nbases):
 
                 if t == 0: f0 = f
 
+                n = 3
+                m = nepochs
+                m = 1
+                cmap = pylab.cm.gray_r
+
                 diff  = 100 * abs(data[t] - f) / data[t]
                 diff1 = 100 * abs(data[t] - f0) / data[t]
 
-                ax=pylab.subplot(nepochs, 7, 7*t + 1) # Original 
-                pylab.imshow(data[t])
+                fig=pylab.figure(figsize=(8,3))
+                figax=pylab.gca()
+
+                ax=pylab.subplot(m, n, 1) # Original 
+                pylab.imshow(data[t], cmap=cmap)
                 ax.xaxis.set_major_locator(pylab.NullLocator())
                 ax.yaxis.set_major_locator(pylab.NullLocator())
-                pylab.jet()
+                if (t == 0 and i==14) or (t==1 and i == 9):
+                    ax.set_title('Original')
 
-                ax=pylab.subplot(nepochs, 7, 7*t + 2) # Reconstructed 
-                pylab.imshow(f)
+                if t == 0:
+                    pylab.ylabel('Unlensed observation')
+                else:
+                    pylab.ylabel(r'Lensed, $\theta_{E,\mathrm{test}}=%.4f$' % rE)
+
+                ax=pylab.subplot(m, n, 2) # Reconstructed 
+                pylab.imshow(f, cmap=cmap)
                 ax.xaxis.set_major_locator(pylab.NullLocator())
                 ax.yaxis.set_major_locator(pylab.NullLocator())
-                pylab.jet()
+                if (t == 0 and i==14) or (t==1 and i == 9):
+                    ax.set_title('Reconstructed')
 
-                ax=pylab.subplot(nepochs, 7, 7*t + 3) # % Error in difference 
-                pylab.imshow(data[t] - f)
+                ax=pylab.subplot(m, n, 3) # % Error in difference 
+                im=pylab.imshow(abs(data[t] - f), cmap=cmap)
                 ax.xaxis.set_major_locator(pylab.NullLocator())
                 ax.yaxis.set_major_locator(pylab.NullLocator())
-                pylab.colorbar()
-                pylab.jet()
+                bnds = ax.get_position().bounds
+                #cax = pylab.axes([0.95, 0.1, 0.04, 0.2])
+                #print cax
+                print [bnds[0]+bnds[2], bnds[1], .2, bnds[3]]
+                pylab.colorbar(cax=pylab.axes([bnds[0]+bnds[2]+0.01, .20, .02, .6]))
+                if (t == 0 and i==14) or (t==1 and i == 9):
+                    ax.set_title('Residual')
 
-                ax=pylab.subplot(nepochs, 7, 7*t + 4) # % Error in difference 
-                pylab.imshow(diff)
-                ax.xaxis.set_major_locator(pylab.NullLocator())
-                ax.yaxis.set_major_locator(pylab.NullLocator())
-                pylab.colorbar()
-                pylab.gray()
+                #pylab.savefig("recon.%i.%02i.%i.png" % (run_id, i, t), bbox_inches='tight');
+                pylab.savefig("recon.%i.%02i.%i.eps" % (run_id, i, t), 
+                              bbox_inches='tight',
+                              pad_inches=0);
 
-                ax=pylab.subplot(nepochs, 7, 7*t + 5) # % Error in difference 
-                pylab.hist(ravel(diff), bins=40, normed=True, histtype='step')
-                ax.yaxis.set_major_locator(pylab.NullLocator())
-                ax.set_xlim(0,100)
+                #pylab.show()
 
-                ax=pylab.subplot(nepochs, 7, 7*t + 6) # % Error in difference 
-                pylab.imshow(diff1)
-                ax.xaxis.set_major_locator(pylab.NullLocator())
-                ax.yaxis.set_major_locator(pylab.NullLocator())
-                pylab.colorbar()
-                pylab.gray()
+#               ax=pylab.subplot(nepochs, n, n*t + 4) # % Error in difference 
+#               pylab.imshow(diff)
+#               ax.xaxis.set_major_locator(pylab.NullLocator())
+#               ax.yaxis.set_major_locator(pylab.NullLocator())
+#               pylab.colorbar()
+#               pylab.gray()
 
-                ax=pylab.subplot(nepochs, 7, 7*t + 7) # % Error in difference 
-                pylab.hist(ravel(diff1), bins=40, normed=True, histtype='step')
-                ax.yaxis.set_major_locator(pylab.NullLocator())
-                ax.set_xlim(0,100)
+#               ax=pylab.subplot(nepochs, n, n*t + 5) # % Error in difference 
+#               pylab.hist(ravel(diff), bins=40, normed=True, histtype='step')
+#               ax.yaxis.set_major_locator(pylab.NullLocator())
+#               ax.set_xlim(0,100)
 
-            title = """\
-rE=%.4f (%.4f) sample %i/%i gamma_tot=%i
+#               ax=pylab.subplot(nepochs, n, n*t + 6) # % Error in difference 
+#               pylab.imshow(diff1)
+#               ax.xaxis.set_major_locator(pylab.NullLocator())
+#               ax.yaxis.set_major_locator(pylab.NullLocator())
+#               pylab.colorbar()
+#               pylab.gray()
+
+#               ax=pylab.subplot(nepochs, n, n*t + 7) # % Error in difference 
+#               pylab.hist(ravel(diff1), bins=40, normed=True, histtype='step')
+#               ax.yaxis.set_major_locator(pylab.NullLocator())
+#               ax.set_xlim(0,100)
+
+            title = r"""\
+rE=%.4f (%.4f) sample %i/%i $\gamma_\mathrm{tot}$=%i
 Original, Reconstructed, %% Err""" % \
 (rE, rE_true, i+1, num_samples, gamma_tot)
 
-            pylab.suptitle(title)
-            pylab.savefig("recon.%s.%i.png" % (run_id, i));
+            #pylab.suptitle(title)
+            #pylab.savefig("recon.%i.%02i.png" % (run_id, i));
+            #pylab.savefig("recon.%i.%02i.eps" % (run_id, i));
 
         #---------------------------------------------------------------------
         # 
         #---------------------------------------------------------------------
 
+#       LN   = (1/2)*log(eig(C, right=False).real)
+#       LS  = sum(LN)
+#       PCP = P.T * C * P
 
-        #prob = (1/2.)*log(abs(det(C))) + P.T * C * P
-#       print "1"
-        LN   = (1/2.)*log(eig(C, right=False).real)
-#       print L
-#       print "2"
-#       LF  = L.flatten()
-#       print "3"
-#       LFS = sort(LF)
-#       print "4"
-#       LCS = cumsum(LFS)
-#       print "5"
+        log_det = sum(log(eig(C, right=False).real))
+        PCP     = P.T * C * P
 
-        #print LCS
-        #pylab.figure()
-        #pylab.plot(LCS)
-        #pylab.show()
+        chi2 = log_det + PCP
 
-        #print "6"
-        LS  = sum(LN)
-        #print "7"
-        PCP = P.T * C * P
-
-        prob = LS + PCP
-        #prob = PCP
-        #prob = (1/2.)*sum(log(eig(C, right=False).real)) + P.T * C * P
-
-        probs[i] = rE, prob
-        print rE, prob
+        probs[i] = rE, chi2
+        print rE, chi2
 
     return probs
 
@@ -473,7 +506,8 @@ if __name__ == "__main__":
     # Select data set
     #-------------------------------------------------------------------------
 
-    data = model(profile_exponential2)
+    data = model(profile_exponential5)
+    #data = model(profile_exponential2)
     #data = model(profile_exponential4)
     #data = model(profile_exponential3)
     #data = model_two_basis_functions()
@@ -501,21 +535,22 @@ if __name__ == "__main__":
 
     probs = run_sim(data)
 
-    f = open('L%s.txt' % run_id, "w")
-    print >>f, '%s' % iter_params
-    print >>f, "# %19s %21s" % ("rE", "Probability")
+    f = open('L%i.txt' % run_id, "w")
+    #print >>f, '%s' % iter_params
+    print >>f, "# Generated on: %s" % time.asctime()
+    print >>f, "# %19s %21s" % ("rE", "Effective \chi^2 (+ ~\gamma_tot)")
     for x,y in probs:
         print >>f, "%21.15e %21.15e" % (x,y)
     print >>f
-    Mi = argmax(probs[:,1])
-    mi = argmin(probs[:,1])
-    print >>f, "%21.15e %21.15e" % (probs[0,0], probs[0,1])
-    print >>f, "%21.15e %21.15e" % (probs[-1,0], probs[-1,1])
-    print >>f, "%21.15e %21.15e" % (probs[mi,0], probs[mi,1])
-    print >>f, "%21.15e %21.15e" % (probs[Mi,0], probs[Mi,1])
+#   Mi = argmax(probs[:,1])
+#   mi = argmin(probs[:,1])
+#   print >>f, "%21.15e %21.15e" % (probs[0,0], probs[0,1])
+#   print >>f, "%21.15e %21.15e" % (probs[-1,0], probs[-1,1])
+#   print >>f, "%21.15e %21.15e" % (probs[mi,0], probs[mi,1])
+#   print >>f, "%21.15e %21.15e" % (probs[Mi,0], probs[Mi,1])
     f.close()
 
-    print "%s FINISHED" % run_id
+    print "%i FINISHED" % run_id
 
     #-------------------------------------------------------------------------
     # Write some output
@@ -535,17 +570,17 @@ if __name__ == "__main__":
     #print >>f, "num_samples=%i" % num_samples
     #print >>f, "\n"
 
-    if True and len(probs) != 0:
+    if False and len(probs) != 0:
         pylab.figure()
         pylab.plot(probs[:,0], gamma_tot - probs[:,1])
         pylab.axvline(x=rE_true)
         pylab.xlabel('rE')
-        pylab.ylabel('Liklihood')
+        pylab.ylabel('Likelihood')
         title = "rE(%.4f)/closest approach(%.4f)=%.4f\nnepochs=%i gamma_tot=%ld" % \
             (rE_true, closest_star_approach, rE_true/closest_star_approach, nepochs,gamma_tot)
 
         pylab.title(title)
-        pylab.savefig("L%s.png" % run_id);
+        pylab.savefig("L%i.png" % run_id);
 
 
     if False:
