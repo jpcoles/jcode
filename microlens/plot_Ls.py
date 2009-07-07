@@ -66,11 +66,11 @@ def plot7(data2):
             i += 1
             #if epoch is None or g is None: continue
             data = data2[epoch][g]
-            if not data: continue
+            #if not data: continue
 
             p = subplot(subn, subm, i)
             if p.is_first_col() and p.is_last_row():
-                xlabel(r'$r_{E,\mathrm{true}}$ [arcsec]')
+                xlabel(r'$\theta_{E,\mathrm{true}}$ [arcsec]')
                 ylabel(r'$p$ [arcsec]')
 
             p.label_outer()
@@ -137,6 +137,9 @@ def plot7(data2):
                     #scatter(ugly[0], log2(ugly[1]), s=ugly[2], c=ugly[3], marker='o', zorder=-1, facecolors='none')
                 yticks(log2(ps['ps']), ps['ps'])
                 xticks(ps['rE_true'])
+
+                xlim()
+                ylim(-5, 1)
 
             a,b,c,d,e = good
             all_good[0]+=a; all_good[1]+=b; all_good[2]+=c; all_good[3]+=d; all_good[4]+=e;
