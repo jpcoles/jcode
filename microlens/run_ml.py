@@ -24,7 +24,14 @@ params = 'params.py'
 if len(sys.argv) == 2:
     mldir = sys.argv[1]+'/'
 
-if True:  # For paper (3)
+if False:  # For paper (3)
+    gamma_tot  = [500000L, 1000000L, 3000000L, 7000000L, 12000000L]
+    nepochs    = [2, 3, 4, 5]
+    rE_true    = [0.01, 0.02, 0.03, 0.04, 0.05]
+    ps         = [0.0625, 0.125, 0.2500, 0.5, 1]
+    num_samples = 30
+
+if True:  # For paper (3) First referee revision
     gamma_tot  = [500000L, 1000000L, 3000000L, 7000000L, 12000000L]
     nepochs    = [2, 3, 4, 5]
     rE_true    = [0.01, 0.02, 0.03, 0.04, 0.05]

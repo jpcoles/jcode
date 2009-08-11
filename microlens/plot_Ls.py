@@ -24,6 +24,7 @@ from numpy import array, amax, log2, sort, loadtxt, argmin, argmax
 from matplotlib import rc
 rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 rc('text', usetex=True)
+rc('font', size=12)
 from matplotlib.pyplot import subplots_adjust
 from matplotlib.cm import get_cmap
 
@@ -31,7 +32,7 @@ import pylab
 from pylab import scatter, plot, hist, savefig, figure, subplot, colorbar, legend
 from pylab import show, xlabel, ylabel, gray, xticks, yticks, xlim, ylim, axvline
 
-sys.path.append('.')
+sys.path.insert(0, '.')
 from params import get_params, get_all_params
 
 ps = get_all_params()
@@ -43,6 +44,24 @@ def mass(r):
     c = 299792458 
     pc = 3.08568025e16
     return r**2 * pc * c**2 / (0.09**2 * 4*G)
+
+def my_label_outer(ax):
+    """
+    set the visible property on ticklabels so xticklabels are
+    visible only if the subplot is in the last row and yticklabels
+    are visible only if the subplot is in the first column
+    """
+    lastrow = ax.is_last_row()
+    lastcol = ax.is_last_col()
+    for label in ax.get_xticklabels():
+        label.set_visible(lastrow)
+
+    for label in ax.get_yticklabels():
+        label.set_visible(lastcol)
+
+    if lastcol:
+        ax.yaxis.set_ticks_position('right')
+        ax.yaxis.set_label_position('right')
 
 def plot7(data2):
 
@@ -69,11 +88,21 @@ def plot7(data2):
             #if not data: continue
 
             p = subplot(subn, subm, i)
-            if p.is_first_col() and p.is_last_row():
-                xlabel(r'$\theta_{E,\mathrm{true}}$ [arcsec]')
-                ylabel(r'$p$ [arcsec]')
+            my_label_outer(p)
 
-            p.label_outer()
+#           if p.is_first_col() and p.is_last_row():
+#               xlabel(r'$\theta_{E,\mathrm{true}}$ [arcsec]')
+#               ylabel(r'$p$ [arcsec]')
+
+            if p.is_first_row():
+                p.xaxis.set_label_position('top')
+                xlabel(r'%i' % g)
+
+            if p.is_first_col():
+                p.yaxis.set_label_position('left')
+                ylabel(r'%i' % epoch)
+
+
             pylab.setp(p.get_xticklabels(), rotation=45)
             #pylab.setp(p.get_yticklabels(), rotation=45)
             good  = [[], [], [], [], []]
@@ -138,7 +167,7 @@ def plot7(data2):
                 yticks(log2(ps['ps']), ps['ps'])
                 xticks(ps['rE_true'])
 
-                xlim()
+                xlim(0.00, 0.06)
                 ylim(-5, 1)
 
             a,b,c,d,e = good
@@ -149,7 +178,8 @@ def plot7(data2):
             all_ugly[0]+=a; all_ugly[1]+=b; all_ugly[2]+=c; all_ugly[3]+=d; all_ugly[4]+=e;
 
     #print 'min/max err:', min_err, max_err
-    subplots_adjust(wspace=0, hspace=0, bottom=0.12,left=0.16,right=0.94)
+    #subplots_adjust(wspace=0, hspace=0, bottom=0.12,left=0.16,right=0.94)
+    subplots_adjust(wspace=0, hspace=0, bottom=0.13,left=0.09,right=0.85,top=0.89)
 #   figure()
 #   hist(err, bins=30)
 #   figure()
@@ -187,8 +217,8 @@ def plot8(data):
     plot(xs, ys, 'ko-')
     axvline(rE_true, ls='-', c='k')
     axvline(vals[maxL][0], ls=':', c='k')
-    xlabel(r'$\theta_E$ [arcsec]')
-    ylabel(r'Effective $\chi^2$')
+    xlabel(r'$\theta_E$ [arcsec]', size=14)
+    ylabel(r'Effective $\chi^2$', size=14)
     print vals[maxL][0], rE_true
 
 data = []
@@ -217,8 +247,9 @@ for j, file in enumerate(files):
 #print [ x[2] for x in data2[2][3000000] if x[0] == 0.125 and .02<x[1]< .04]
 #f = figure(); plot8([ x for x in data2[2][3000000] if x[1] == 0.125 and .02<x[0]< .04][0])
 #f = figure(); plot8([ x for x in data2[3][500000] if x[1] == 1.00 and .03<x[0]< .05][0])
+#f = figure(); plot8([ x for x in data2[2][3000000] if x[1] == 0.25 and .04<x[0]< .06][0])
 f = figure(); plot8([ x for x in data2[2][3000000] if x[1] == 0.25 and .04<x[0]< .06][0])
-savefig('likelihood.eps')
+#savefig('likelihood.eps')
 #show()
 #sys.exit(0)
 
@@ -227,17 +258,28 @@ plot7(data2)
 f=figure(f.number)
 f.text(.5, .95, 
     r'Number of photons $\gamma_\mathrm{tot}$',
-    horizontalalignment='center')
-f.text(.5, .92, 
-    r'$\gamma_\mathrm{tot}=0.5,1,3,5,7,12\quad\times 10^6$ (left to right)', 
-    horizontalalignment='center')
+    horizontalalignment='center', size=14)
+#f.text(.5, .92, 
+#    r'$\gamma_\mathrm{tot}=0.5,1,3,5,7,12\quad\times 10^6$ (left to right)', 
+#    horizontalalignment='center')
 f.text(.02, .5, 
-    r'Number of epochs $N_\mathrm{obs}$',
-    verticalalignment='center', rotation='vertical')
-f.text(.04, .5, 
-    r'$N_\mathrm{obs}=5,4,3,2$ (bottom to top)', 
-    verticalalignment='center', rotation='vertical')
-savefig('fullsim-t2.eps')
+    r'Number of observations $N_\mathrm{obs}$',
+    verticalalignment='center', rotation='vertical', size=14)
+#f.text(.04, .5, 
+#    r'$N_\mathrm{obs}=5,4,3,2$ (bottom to top)', 
+#    verticalalignment='center', rotation='vertical')
+
+f.text(.5, .015, 
+    r'Einstein radius $\theta_{E,\mathrm{true}}$ [arcsec]',
+    horizontalalignment='center', size=14)
+
+f.text(.95, .5, 
+    r'Impact parameter $p$ [arcsec]',
+    verticalalignment='center', rotation=270, size=14)
+    #verticalalignment='center', rotation='vertical')
+
+#               ylabel(r'$p$ [arcsec]')
+savefig('fullsim-t3.eps')
 
 show()
 
