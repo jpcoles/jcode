@@ -21,13 +21,13 @@ import sys, time
 from math import pow, pi
 
 import numpy
-from numpy import empty, zeros, ndindex, vectorize, abs
+from numpy import empty, zeros, ndindex, vectorize, abs, logical_not
 from numpy import sum, linspace, mat, abs, inner, asarray_chkfinite, ravel
 from numpy.random import poisson, seed
 from numpy.core.umath import exp, sqrt, log
 
 from scipy.linalg import eig
-from scipy.special import hermite
+from scipy.special import hermite, jn
 from scipy.misc import factorial
 
 # Use LaTeX to generate text for the plots
@@ -36,6 +36,36 @@ rc('font',**{'family':'serif','serif':['Computer Modern Roman']})
 rc('text', usetex=True)
 
 import pylab
+
+numpy.set_printoptions(threshold=numpy.nan)
+
+
+#===============================================================================
+# A variety of different surface brightness distribution functions.
+#===============================================================================
+
+def deVaucouleurs(R, Ie=1, m=4, Re=1.0):
+    bm = 2*m - 0.324
+    return Ie * exp(-bm * sqrt((abs(R)/Re)**2 + .056**2)**(1/m))
+
+def profile_exponential(R, Ie=.40, Rd=.50):
+    return Ie * exp(-abs(R)/Rd)
+
+def profile_exponential2(R):
+    return (1+abs(R))**-2
+
+def profile_exponential3(R): # AfterEaster run1
+    return (1 + sqrt(R.real**2 + 0.8*R.imag**2))**-2
+
+def profile_exponential4(R): # AfterEaster run2
+    return (1 + sqrt(0.8*R.real**2 + R.imag**2))**-2
+
+def profile_exponential5(R):
+    return (.2+abs(R))**-2
+
+def profile_exponential5_2(R):
+    dr = complex(0.03,0.03)
+    return (.2+abs(R-dr))**-2 + (.2+abs(R+dr))**-2
 
 #===============================================================================
 
@@ -53,12 +83,14 @@ def star_track_symmetric(n):
         yield i+1, complex(p, -closest_star_approach)
 
 def star_track_nonsymmetric(n):
-    yield 0, complex(0)
+    yield 0, None #complex(0)
 
-    pos = linspace(0, 0.5, n-1)
+    for i in range(1, n):
+        yield i, complex(i*cell_size*5, -closest_star_approach)
 
-    for i, p in enumerate(pos):
-        yield i+1, complex(p, -closest_star_approach)
+    #pos = linspace(2*cell_size, 10*cell_size, n-1)
+    #for i, p in enumerate(pos):
+        #yield i+1, complex(p, -closest_star_approach)
 
 #===============================================================================
 
@@ -72,10 +104,12 @@ def model(m):
     for t,z in star_track(nepochs):
         if t == 0:
             xx = raytrace()
+            mask = 1
         else:
             xx = raytrace(rE_true, z)
+            mask = star_mask(z)
 
-        data[t] = normalize(m(xx))
+        data[t] = normalize(m(xx) * mask)
 
     return data
 
@@ -111,29 +145,6 @@ def model_two_basis_functions():
     return data
 
 #===============================================================================
-# A variety of different surface brightness distribution functions.
-#===============================================================================
-
-def deVaucouleurs(R, Ie=1, m=4, Re=1.0):
-    bm = 2*m - 0.324
-    return Ie * exp(-bm * (abs(R)/Re)**(1/m))
-
-def profile_exponential(R, Ie=.40, Rd=.50):
-    return Ie * exp(-abs(R)/Rd)
-
-def profile_exponential2(R):
-    return (1+abs(R))**-2
-
-def profile_exponential3(R): # AfterEaster run1
-    return (1 + sqrt(R.real**2 + 0.8*R.imag**2))**-2
-
-def profile_exponential4(R): # AfterEaster run2
-    return (1 + sqrt(0.8*R.real**2 + R.imag**2))**-2
-
-def profile_exponential5(R):
-    return (.2+abs(R))**-2
-
-#===============================================================================
 
 def raytrace(theta_E=None, z=None):
     """ Raytrace an image plane theta (global) to a source plane assuming the
@@ -152,6 +163,11 @@ def normalize(sb):
     """
     sb *= gamma_tot / sum(sb)
     return sb
+
+#===============================================================================
+
+def star_mask(z):
+    return logical_not(abs(theta-z) < star_mask_size)
 
 #===============================================================================
 
@@ -197,7 +213,39 @@ def save_basis_functions(N):
             pylab.imshow(B.T)
             l += 1
     pylab.suptitle("Shapelets N=%i Beta=%.4f" % (N, beta))
-    pylab.savefig("B%i.png" % N)
+    #pylab.savefig("B%i.png" % N)
+    pylab.show()
+
+def save_bessel_functions(N):
+    """Generate N 2D shapelets and plot."""
+
+    beta2 = beta**2
+    B     = empty((grid_size, grid_size)) # Don't want matrix behaviour here
+
+    #---------------------------------------------------------------------------
+    # Basis function constants, and hermite polynomials
+    #---------------------------------------------------------------------------
+
+    vals = [[n, 1.0/sqrt((2**n) * sqrt(pi) * factorial(n,1) * beta), 0, 0,0] 
+            for n in xrange(N)]
+    expreal = exp(-theta.real**2/(2*beta2))
+    expimag = exp(-theta.imag**2/(2*beta2))
+    for n,K,H,_,_ in vals:
+        vals[n][3] = K*jn(n,theta.real) * expreal
+        vals[n][4] = K*jn(n,theta.imag) * expimag
+
+    pylab.figure()
+    l=0
+    for v1 in vals:
+        for v2 in vals:
+            B = v1[3] * v2[4]
+            pylab.subplot(N,N, l+1)
+            pylab.axis('off')
+            pylab.imshow(B.T)
+            l += 1
+    pylab.suptitle("Shapelets N=%i Beta=%.4f" % (N, beta))
+    #pylab.savefig("B%i.png" % N)
+    pylab.show()
 
 # Note: This has been heavily tailored to generate specially labeled plots for
 # the paper.
@@ -209,12 +257,21 @@ def plot_reconstructions(i, data, rE, L, C, P, N):
     fn = C*P
     #for n in xrange(N): print fn[n,0]
 
+    for_paper = True
+
     for t,z in star_track(nepochs):
         f = zeros((grid_size, grid_size), 'float')
 
+        if t == 0:
+            mask = 1
+        else:
+            mask = star_mask(z)
 
         # Could probably use tensordot() here.
         for n in xrange(N): f += fn[n,0] * L[n,t]
+
+        f       *= mask
+        data[t] *= mask
 
         if t == 0: f0 = f
 
@@ -222,86 +279,76 @@ def plot_reconstructions(i, data, rE, L, C, P, N):
         m = nepochs
         m = 1
         cmap = pylab.cm.jet
-        #cmap = pylab.cm.gray_r
 
         diff  = 100 * abs(data[t] - f) / data[t]
         diff1 = 100 * abs(data[t] - f0) / data[t]
 
-        fig=pylab.figure(figsize=(8,3))
-        figax=pylab.gca()
+        print 'diff shape is', diff.shape
 
-        ax=pylab.subplot(m, n, 1) # Original 
-        pylab.imshow(data[t], cmap=cmap)
-        ax.xaxis.set_major_locator(pylab.NullLocator())
-        ax.yaxis.set_major_locator(pylab.NullLocator())
-        if (t == 0 and i==14) or (t==1 and i == 9):
-            ax.set_title('Original')
+#       pylab.figure()
+#       pylab.hist(diff.flatten())
 
-        if t == 0:
-            pylab.ylabel('Unlensed observation')
-        else:
-            pylab.ylabel(r'Lensed, $\theta_{E,\mathrm{test}}=%.4f$' % rE)
+        if for_paper:
 
-        ax=pylab.subplot(m, n, 2) # Reconstructed 
-        pylab.imshow(f, cmap=cmap)
-        ax.xaxis.set_major_locator(pylab.NullLocator())
-        ax.yaxis.set_major_locator(pylab.NullLocator())
-        if (t == 0 and i==14) or (t==1 and i == 9):
-            ax.set_title('Reconstructed')
+            print "PAPER INFO"
+            print "rE = %g\n" % rE
 
-        ax=pylab.subplot(m, n, 3) # % Error in difference 
-        im=pylab.imshow(abs(data[t] - f), cmap=cmap)
-        ax.xaxis.set_major_locator(pylab.NullLocator())
-        ax.yaxis.set_major_locator(pylab.NullLocator())
-        bnds = ax.get_position().bounds
-        #cax = pylab.axes([0.95, 0.1, 0.04, 0.2])
-        #print cax
-        print [bnds[0]+bnds[2], bnds[1], .2, bnds[3]]
-        pylab.colorbar(cax=pylab.axes([bnds[0]+bnds[2]+0.01, .20, .02, .6]))
-        if (t == 0 and i==14) or (t==1 and i == 9):
-            ax.set_title('Residual')
-
-        #pylab.savefig("recon.%i.%02i.%i.png" % (run_id, i, t), bbox_inches='tight');
-        pylab.savefig("recon.%i.%02i.%i.color.eps" % (run_id, i, t), 
-                      bbox_inches='tight',
-                      pad_inches=0);
-
-        #pylab.show()
-
-#       ax=pylab.subplot(nepochs, n, n*t + 4) # % Error in difference 
-#       pylab.imshow(diff)
-#       ax.xaxis.set_major_locator(pylab.NullLocator())
-#       ax.yaxis.set_major_locator(pylab.NullLocator())
-#       pylab.colorbar()
-#       pylab.gray()
-
-#       ax=pylab.subplot(nepochs, n, n*t + 5) # % Error in difference 
-#       pylab.hist(ravel(diff), bins=40, normed=True, histtype='step')
-#       ax.yaxis.set_major_locator(pylab.NullLocator())
-#       ax.set_xlim(0,100)
-
-#       ax=pylab.subplot(nepochs, n, n*t + 6) # % Error in difference 
-#       pylab.imshow(diff1)
-#       ax.xaxis.set_major_locator(pylab.NullLocator())
-#       ax.yaxis.set_major_locator(pylab.NullLocator())
-#       pylab.colorbar()
-#       pylab.gray()
-
-#       ax=pylab.subplot(nepochs, n, n*t + 7) # % Error in difference 
-#       pylab.hist(ravel(diff1), bins=40, normed=True, histtype='step')
-#       ax.yaxis.set_major_locator(pylab.NullLocator())
-#       ax.set_xlim(0,100)
-
-    title = r"""\
-rE=%.4f (%.4f) sample %i/%i $\gamma_\mathrm{tot}$=%i
-Original, Reconstructed, %% Err""" % \
-(rE, rE_true, i+1, num_samples, gamma_tot)
-
-    #pylab.suptitle(title)
-    #pylab.savefig("recon.%i.%02i.png" % (run_id, i));
-    #pylab.savefig("recon.%i.%02i.eps" % (run_id, i));
+            fig=pylab.figure(figsize=(8,3))
+            #figax=pylab.gca()
 
 
+            nr, nc = data[t].shape
+            extent = [-0.5, nc-0.5, nr-0.5, -0.5]
+            kw = {'extent': extent,
+                  'origin': 'upper',
+                  'interpolation': 'nearest',
+                  'aspect': 'equal',
+                  'cmap': cmap}
+
+            ax=pylab.subplot(m, n, 1) # Original 
+            im=pylab.imshow(data[t], **kw)
+            ax.xaxis.set_major_locator(pylab.NullLocator())
+            ax.yaxis.set_major_locator(pylab.NullLocator())
+            if [t,i] in [ [0,14], [1,9] ]:
+                ax.set_title('Original')
+
+            if t == 0:
+                pylab.ylabel('Unlensed observation')
+            else:
+                pylab.ylabel(r'Lensed, $\theta_{E,\mathrm{test}}=%.4f$' % rE)
+
+            ax=pylab.subplot(m, n, 2) # Reconstructed 
+            pylab.imshow(f, **kw)
+            ax.xaxis.set_major_locator(pylab.NullLocator())
+            ax.yaxis.set_major_locator(pylab.NullLocator())
+            if [t,i] in [ [0,14], [1,9] ]:
+                ax.set_title('Reconstructed')
+
+            ax=pylab.subplot(m, n, 3) # % Error in difference 
+            im=pylab.imshow(abs(data[t] - f), **kw)
+            ax.xaxis.set_major_locator(pylab.NullLocator())
+            ax.yaxis.set_major_locator(pylab.NullLocator())
+            bnds = ax.get_position().bounds
+            #cax = pylab.axes([0.95, 0.1, 0.04, 0.2])
+            #print cax
+            print [bnds[0]+bnds[2], bnds[1], .2, bnds[3]]
+            #pylab.colorbar(mappable=im, cax=pylab.axes([bnds[0]+bnds[2]+0.01, .20, .02, .6]))
+            pylab.colorbar(cax=pylab.axes([bnds[0]+bnds[2]+0.01, .20, .02, .6]))
+            if [t,i] in [ [0,14], [1,9] ]:
+                ax.set_title('Residual')
+
+            pylab.savefig("recon.%i.%02i.%i.color.eps" % (run_id, i, t), 
+                          bbox_inches='tight',
+                          pad_inches=0);
+
+            continue
+
+        pylab.figure()
+        pylab.matshow(diff)
+        pylab.figure()
+        pylab.matshow(data[t])
+        pylab.colorbar()
+        pylab.gray()
 
 def run_sim(data, N0):
     """ Run the lensing simulation with the parameters provided in params.py.
@@ -331,9 +378,9 @@ def run_sim(data, N0):
     #---------------------------------------------------------------------------
 
     # The basis functions evaluated at the lensed positions
-    L     = empty((N, nepochs, grid_size, grid_size))
+    L     = empty((N, nepochs, grid_size, grid_size), numpy.float64)
     # Copied, flattened version of the above divided by sigma^2
-    Lt    = empty((N, nepochs*grid_size*grid_size))
+    Lt    = empty((N, nepochs*grid_size*grid_size), numpy.float64)
 
     # Projection of data on the model
     P     = mat(empty((N,1), numpy.float64))
@@ -349,11 +396,13 @@ def run_sim(data, N0):
     # function now, since they are constant over the run.
     #---------------------------------------------------------------------------
 
-    vals = [[n, 1.0/sqrt((2**n) * sqrt(pi) * factorial(n,1) * beta), hermite(n), 0,0] 
+    #vals = [[n, 1.0/sqrt((2**n) * sqrt(pi) * factorial(n,1) * beta), hermite(n), 0,0] 
+    vals = [[n, 1.0/sqrt( (2**n) * sqrt(pi) * factorial(n,1) ), hermite(n), 0,0] 
             for n in xrange(N0)]
 
     sqrt_data = sqrt(data)
     beta2     = beta**2
+
 
     #---------------------------------------------------------------------------
     # Now we start the simulation.
@@ -361,45 +410,54 @@ def run_sim(data, N0):
     # (1) Choose different values for rE.
     #---------------------------------------------------------------------------
 
+
     for i,rE in enumerate(linspace(rE_sample[0], rE_sample[1], num_samples)):
 
         # XXX: Just for some specific plots
         #if i not in [14]: continue
         # XXX: Just for some specific plots
 
+
         #-----------------------------------------------------------------------
         # (2) Move the star across the sky 
         #-----------------------------------------------------------------------
 
+
         for t,z in star_track(nepochs):
+
+
             #-------------------------------------------------------------------
             # (2a) Generate an "observation". The first is unlensed.
             #-------------------------------------------------------------------
             if t == 0:
                 print "%4i] rE=%f Epoch %i NO LENS" % (i, rE, t)
                 xx = raytrace()
+                mask = 1
             else:
                 print "%4i] rE=%f Epoch %i @ %f,%f" % (i, rE, t, z.real,z.imag)
                 xx = raytrace(rE, z)
+                mask = star_mask(z)
 
             #-------------------------------------------------------------------
             # Basis function approximation
             #-------------------------------------------------------------------
             expreal = exp(-xx.real**2/(2*beta2))
             expimag = exp(-xx.imag**2/(2*beta2))
-            for n,K,H,v0,v1 in vals:
+            for n,K,H,_,_ in vals:
                 vals[n][3] = K * H(xx.real/beta) * expreal
                 vals[n][4] = K * H(xx.imag/beta) * expimag
 
             n=0
-            for v1 in vals:
-                for v2 in vals:
-                    L[n,t] = v1[3] * v2[4]
+            for _,_,_,b1,_ in vals:
+                for _,_,_,_,b2 in vals:
+                    L[n,t] = b1 * b2 / beta * mask
                     n += 1
+
 
         #-----------------------------------------------------------------------
         # (3) Compute the projection and covariance matrices.
         #-----------------------------------------------------------------------
+
 
         for n in xrange(N):
             sum(L[n], out=P[n])
@@ -411,10 +469,11 @@ def run_sim(data, N0):
         C = C_inv.I
 
         #-----------------------------------------------------------------------
-        # Optionally calculate the basis function coefficients and plot the
-        # reconstruction of the image.
+        # (3a) Optionally calculate the basis function coefficients and plot
+        # the reconstruction of the image.
         #-----------------------------------------------------------------------
         if 0: plot_reconstructions(i,data,rE,L,C,P,N)
+
 
         #-----------------------------------------------------------------------
         # (4) Computer the effective chi^2. Note that we do not subtract the
@@ -423,13 +482,14 @@ def run_sim(data, N0):
         # gamma_tot.
         #-----------------------------------------------------------------------
 
+
         log_det = sum(log(eig(C, right=False).real))
         PCP     = P.T * C * P
 
         chi2 = log_det + PCP
 
         probs[i] = rE, chi2
-        print rE, chi2
+        print "rE,chi2 =", rE, chi2
 
     return probs
 
@@ -463,15 +523,32 @@ if __name__ == "__main__":
     # Global parameters.
     #---------------------------------------------------------------------------
 
-    beta        =       .20                     # arcsec - Basis function normalization
-    Nbases      =       25                      # sqrt(Number of basis functions)
-    grid_phys   =       2.0                     # arcsec - Physical size across grid
-    grid_radius =       60                      # pixels
-    grid_size   =       2*grid_radius + 1       # pixels
-    cell_size   =       grid_phys / grid_size   # arcsec/pixel
+    beta           = .20                     # arcsec - Basis function normalization
+    Nbases         = 20                      # sqrt(Number of basis functions)
+    grid_phys      = 2.0                     # arcsec - Physical size across grid
+                   
+    grid_radius    = 35                      # pixels
+    grid_size      = 2*grid_radius + 1       # pixels
+                   
+    cell_size      = grid_phys / grid_size   # arcsec/pixel
+    star_mask_size = 1 * cell_size           # arcsec
 
     # A fixed seed is used so that all the invocations generate the same test data.
-    seed(0)
+    seed(12)
+
+
+    if 0:
+        r = grid_phys*10
+        X = linspace(-r, r, 2*(grid_radius+1)*10+1)
+        Y = (deVaucouleurs(X))
+
+        pylab.plot(X, normalize(deVaucouleurs(X)), label="deV")
+        pylab.plot(X, normalize(profile_exponential5(X)), label="exp5")
+        #pylab.plot(X, normalize(profile_exponential4(X)), label="exp4")
+        pylab.plot(X, normalize(profile_exponential5_2(X)), label="exp52")
+        pylab.legend()
+        pylab.show()
+        sys.exit(0)
 
 
     if rE_sample[0] == rE_sample[1]:
@@ -492,13 +569,18 @@ if __name__ == "__main__":
     for i,j in ndindex(grid_size,grid_size):
         theta[i,j] = complex(j-grid_radius, -(i-grid_radius)) * cell_size
 
+    #save_basis_functions(Nbases)
+    #save_bessel_functions(Nbases)
+
     #---------------------------------------------------------------------------
     # Select data set
     #---------------------------------------------------------------------------
 
+
     star_track = star_track_nonsymmetric
 
     data = model(deVaucouleurs)
+    #data = model(profile_exponential5_2)
     #data = model(profile_exponential5)
     #data = model(profile_exponential2)
     #data = model(profile_exponential4)
@@ -513,6 +595,24 @@ if __name__ == "__main__":
     data = vaddnoise(normalize(data))
     data[data < 1] = 1
 
+    if 0:
+        for d in data:
+            for t,z in star_track(nepochs):
+                if t > 0: d *= star_mask(z)
+            pylab.matshow(d)
+            pylab.colorbar()
+        pylab.show()
+        sys.exit(0)
+
+
+    if 0:
+        d = data[0]
+        for t,z in star_track(nepochs):
+            if t > 0: d *= star_mask(z)
+        pylab.matshow(d)
+        #pylab.colorbar()
+        pylab.show()
+        sys.exit(0)
     #---------------------------------------------------------------------------
     #save_basis_functions(8)
     #demo_lensing(6)
@@ -525,6 +625,9 @@ if __name__ == "__main__":
     #---------------------------------------------------------------------------
 
     probs = run_sim(data, Nbases)
+
+    sys.exit(0)
+
 
     #---------------------------------------------------------------------------
     # Write some output
@@ -540,15 +643,8 @@ if __name__ == "__main__":
 
     print "%i FINISHED" % run_id
 
-    if False and len(probs) != 0:
-        pylab.figure()
-        pylab.plot(probs[:,0], gamma_tot - probs[:,1])
-        pylab.axvline(x=rE_true)
-        pylab.xlabel('rE')
-        pylab.ylabel('Likelihood')
-        title = "rE(%.4f)/closest approach(%.4f)=%.4f\nnepochs=%i gamma_tot=%ld" % \
-            (rE_true, closest_star_approach, rE_true/closest_star_approach, nepochs,gamma_tot)
-
-        pylab.title(title)
-        pylab.savefig("L%i.png" % run_id);
+    try:
+        pylab.show()
+    except:
+        pass
 

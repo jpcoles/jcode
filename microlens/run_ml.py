@@ -18,6 +18,7 @@
 
 import sys
 from subprocess import Popen
+from random import shuffle
 
 params = 'params.py'
 
@@ -31,14 +32,30 @@ if False:  # For paper (3)
     ps         = [0.0625, 0.125, 0.2500, 0.5, 1]
     num_samples = 30
 
-if True:  # For paper (3) First referee revision
+if False:  # For paper (3) First referee revision
     gamma_tot  = [500000L, 1000000L, 3000000L, 7000000L, 12000000L]
     nepochs    = [2, 3, 4, 5]
     rE_true    = [0.01, 0.02, 0.03, 0.04, 0.05]
     ps         = [0.0625, 0.125, 0.2500, 0.5, 1]
     num_samples = 30
 
-xargs_fp = open('_xargs', 'w')
+if False:  # For paper (3) 
+    x = 2./71 * 10
+    gamma_tot  = [500000L, 1000000L, 3000000L, 7000000L, 12000000L]
+    nepochs    = [2, 3, 4, 5]
+    rE_true    = [0.01, 0.02, 0.03, 0.04, 0.05]
+    ps         = [x/4, x/2, x, 2*x, 4*x]
+    num_samples = 30
+
+if True:  # For paper. FINAL VALUES.
+    x = 2./71
+    gamma_tot  = [500000L, 1000000L, 3000000L, 7000000L, 12000000L]
+    nepochs    = [2, 3, 4, 5]
+    rE_true    = [0.01, 0.02, 0.03, 0.04, 0.05]
+    ps         = [x * 2**i for i in range(1,6)]
+    #ps         = [0.0625, 0.125, 0.2500, 0.5, 1]
+    num_samples = 30
+
 
 f = open(params, 'w')
 
@@ -51,6 +68,8 @@ print >>f, '''\
             'num_samples':%s}''' % (gamma_tot, nepochs, rE_true, ps, num_samples)
 print >>f
 print >>f, 'def get_params(id):'
+
+xargs_output = []
 
 iter    = 0
 maxiter = len(gamma_tot) * len(nepochs) * len(rE_true) * len(ps)
@@ -73,10 +92,15 @@ for i,g in enumerate(gamma_tot):
                     % (id, id,e, g, rE, p, rE*.5, rE*1.5, num_samples)
                 print >>f, iter_params
 
-                print >>xargs_fp, '%sml.py %i' % (mldir, id)
+                xargs_output.append([mldir, id])
                 print '%sml.py %i' % (mldir, id)
-
 f.close()
 
+#shuffle(xargs_output)
+
+xargs_fp = open('_xargs', 'w')
+for mldir, id in xargs_output:
+    print >>xargs_fp, '%sml.py %i' % (mldir, id)
 xargs_fp.close()
-print 'Usage: xargs -P 32 -n 2 python25 < _xargs'
+
+print 'Usage: xargs --verbose -P 22 -n 2 nice -19 python < _xargs'
