@@ -1,6 +1,6 @@
 CC=gcc
 CXX=g++
-CFLAGS=-Wall -O3 -Itipsylib
+CFLAGS=-Wall -O2 -Itipsylib
 LDFLAGS=-Ltipsylib
 LIBS=-ltipsy -lm
 TIPSYLIB=libtipsy.a

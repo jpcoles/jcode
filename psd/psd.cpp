@@ -27,7 +27,9 @@ typedef struct
 
 int _key_compar(const void *a, const void *b)
 {
-    return ((Key *)a)->key < ((Key *)b)->key;
+    if (((Key *)a)->key < ((Key *)b)->key) return -1;
+    if (((Key *)a)->key > ((Key *)b)->key) return +1;
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -197,8 +199,20 @@ do {                                    \
     //uint32_t nxcells = 1000;
     //uint32_t nvcells = 1000;
 
-    uint32_t nxcells = pow(h.h_nBodies, 1./3);
-    uint32_t nvcells = pow(h.h_nBodies, 1./3);
+    uint32_t nxcells = 2* pow(h.h_nBodies, 1./3);
+    uint32_t nvcells = 2* pow(h.h_nBodies, 1./3);
+
+    if (nxcells > (1<<22)-1)
+    {
+        cerr << "Number of coordinate cells is too large. Must be less than 2^22-1." << endl;
+        exit(1);
+    }
+
+    if (nvcells > (1<<22)-1)
+    {
+        cerr << "Number of velocity cells is too large. Must be less than 2^22-1." << endl;
+        exit(1);
+    }
 
     if (dx != 0) nxcells = (uint32_t)ceil(max_xrange * 1.001 / dx);
     if (dv != 0) nvcells = (uint32_t)ceil(max_vrange * 1.001 / dv);
@@ -259,6 +273,14 @@ do {                                    \
     uint128_t key = -1;
     for (i=0; i < N; i++)
     {
+#if 0
+        cout << hex 
+             << int((keys[i].key >>  0) & 0xFFFF) << " "
+             << int((keys[i].key >> 32) & 0xFFFF) << " "
+             << int((keys[i].key >> 64) & 0xFFFF) << " "
+             << int((keys[i].key >> 96) & 0xFFFF) << " "
+             << endl;
+#endif
         if (key != keys[i].key)
         {
             if (f != 0)
@@ -278,7 +300,11 @@ do {                                    \
 
                 for (j=first_in_run; j < i; j++)
                 {
-                    ps[keys[j].pid].rho = rho;
+                        //ps[keys[j].pid].rho = rho;
+                    if (rho > 1e7)
+                        ps[keys[j].pid].rho = nkeys;
+                    else
+                        ps[keys[j].pid].rho = 0.001;
                 }
             }
 
