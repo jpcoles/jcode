@@ -1,6 +1,6 @@
 import numpy as np
 
-def load_tipsy(filename, fmt='auto', memmap=True, which='gds'):
+def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
 
     hdr_type  = np.dtype(
                 [('time',    'f8'),      # Time
@@ -106,6 +106,9 @@ def load_tipsy(filename, fmt='auto', memmap=True, which='gds'):
     t.star = t.s = star
     t.file = t.f = f
 
+    if merge is not None:
+        t.p = np.hstack([ t.g[merge], t.s[merge], t.d[merge] ]).view(np.recarray)
+
     return t
     #hdr, sph, dark, star, f
 
@@ -141,11 +144,13 @@ if __name__ == '__main__':
     #h,g,d,s,f = load_tipsy('galaxy1.std', memmap=True, fmt='little-endian')
     #h,g,d,s = load_tipsy('galaxy1.std')
 
-    t = load_tipsy('galaxy1.std', memmap=False)
+    #t = load_tipsy('galaxy1.std', memmap=False)
+    t = load_tipsy('galaxy1.std', memmap=True, which='d', merge=['m','r', 'v'])
     #h,g,d,s,f = memmap_tipsy('galaxy1.std')
     #t = load_tipsy('/Users/jonathan/TIP2VTK/tip2vtk/dark.std', memmap=False, which='')
 
-    com(t)
+    #com(t)
+    print t.p.size, t.hdr.nBodies, t.p.dtype
 
     #print 'Radial distances (DM)'
     #print np.sum(d.r**2, 1)
