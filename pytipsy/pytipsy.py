@@ -11,8 +11,95 @@
 #
 
 import numpy as np
+import gzip
+import mmap
 
 def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
+    """Read a tipsy file and return a structure containing NumPy arrays
+       for each of the three types of particles. 
+
+       This function also supports files compressed with gzip if the 
+       filename has a '.gz' extension. Memory mapping does not improve
+       performance in this case.
+
+       The returned structure (e.g. t) contains the following properties:
+
+           t.hdr      == t.h         # Header
+           t.sph      == t.g         # Sph / Gas particles
+           t.dark     == t.d         # Dark matter
+           t.star     == t.s         # Stars
+           t.file     == t.f         # File handle for memmaped files
+           t.filename == filename    # Filename
+
+    
+       The arrays are all NumPy record arrays, which means that individual
+       properties can be accessed in a number of ways. The following are
+       all valid for a dark matter particle d:
+
+        d[0] == d['m'] == d.m 
+
+           
+       The endianness of the file will be automatically determined unless fmt
+       is set to one of 'standard', 'little-endian', 'native' in which case
+       big-endian, little-endian, or the current platform's endianness will be
+       assumed, respectively.
+
+       If memmap is True (the default) then the arrays will be backed by
+       NumPy's memmap function (if not gzip'd) and therefore only particles
+       actually accessed will be read from disk. This only works if 
+       merge is not used, as it will force all the particles to be loaded.
+
+       The keyword which determines which kinds of particles to load. This
+       must be a single string containing the letters 'g' for gas/sph, 
+       'd' for dark matter, and 's' for stars.
+
+       The merge option creates an additional array containing the union
+       of all particles but with only the properties listed in this
+       option. Only mutually compatible options are allowed. That is to
+       to saw the given options have to be shared among all the particle
+       types listed in 'which'.
+
+       The types are defined in this way:
+       
+       HEADER
+           'time'        # Time
+           'nBodies'     # Number of particles
+           'nDim'        # Number of dimensions
+           'nSph'        # Number of SPH particles
+           'nDark'       # Number of dark matter particles
+           'nStar'       # Number of star particles
+
+       DARK MATTER      
+           'm'           # Mass
+           'r'           # Position
+           'v'           # Velocity
+           'eps'         # Softening
+           'phi'         # Potential                 
+                                         
+       STARS            
+           'm'           # Mass
+           'r'           # Position
+           'v'           # Velocity
+           'metals'      # Metals
+           'tform'       # Formation time
+           'eps'         # Softening
+           'phi'         # Potential
+
+       SPH / GAS
+           'm'           # Mass
+           'r'           # Position
+           'v'           # Velocity
+           'rho'         # Density
+           'temp'        # Temperature
+           'hsmooth'
+           'metals'      # Metals
+           'phi'         # Potential
+       
+    """
+
+    if merge and memmap:
+        raise ValueError('merge will force the entire file to be read. This is probably not what you want with memmap=True.')
+
 
     hdr_type  = np.dtype(
                 [('time',    'f8'),      # Time
@@ -51,14 +138,15 @@ def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
 
     def newarray_file(file, type, offs, count):
         file.seek(offs)
-        return np.recarray(np.fromfile(file=file, dtype='uint8', count=count*type.itemsize), 
-                           offset=offs, shape=count, dtype=type)
-
-        #return np.recarray(buf=file, offset=offs, shape=count, dtype=type)
-        #return np.rec.array(np.fromfile(file=file, dtype=type, count=count), copy=False)
+        return np.recarray(buf=np.fromfile(file=file, dtype='uint8', count=count*type.itemsize), shape=count, dtype=type)
 
     def newarray_mem(buf, type, offs, count):
         return np.recarray(buf=buf, offset=offs, shape=count, dtype=type)
+
+    def newarray_gzip(file, type, offs, count):
+        file.seek(offs)
+        return np.recarray(buf=file.read(count*type.itemsize), shape=count, dtype=type)
+
 
     def newbyteorder(t):
         return [hdr_type.newbyteorder(t),
@@ -66,12 +154,22 @@ def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
                 dark_type.newbyteorder(t),
                 star_type.newbyteorder(t)]
 
-    if memmap:
-        newarray = newarray_mem
-        f = np.memmap(filename, mode='c')
-    else:
-        newarray = newarray_file
+
+    if filename.endswith('.gz'):
         f = open(filename, 'rb')
+        newarray = newarray_gzip
+        if memmap: 
+            newarray = newarray_gzip
+            f = mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_COPY)
+        f = gzip.GzipFile(fileobj=f)
+    else:
+        if memmap:
+            newarray = newarray_mem
+            f = np.memmap(filename, mode='c')
+        else:
+            newarray = newarray_file
+            f = open(filename, 'rb')
+
 
     if fmt == 'standard':      hdr_type,sph_type,dark_type,star_type = newbyteorder('B')
     if fmt == 'little-endian': hdr_type,sph_type,dark_type,star_type = newbyteorder('L')
@@ -80,18 +178,18 @@ def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
     hdr = newarray(f, hdr_type, 0, 1)[0]
 
     if fmt == 'auto':
-        if hdr.ndim not in [2,3]:
+        if hdr.nDim not in [2,3]:
             hdr_type,sph_type,dark_type,star_type = newbyteorder('S')
             hdr = newarray(f, hdr_type, 0, 1)[0]
 
     if hdr.nDim not in [2,3]:
-        if memmap:
-            del f
-        else:
-            f.close()
+        f.close()   # close the file
+        del f       # if it was gzip'd this will make sure it is definitely closed.
         raise IOError("Corrupt TIPSY file? Dimensions are not 2 or 3. Perhaps try fmt='standard' or 'native'")
 
     if hdr.nBodies != hdr.nSph + hdr.nDark + hdr.nStar:
+        f.close()   # close the file
+        del f       # if it was gzip'd this will make sure it is definitely closed.
         raise IOError("Corrupt TIPSY file? Particle counts are inconsistent with total")
 
     sph_bytes  = hdr.nSph  * sph_type.itemsize
@@ -110,13 +208,17 @@ def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
         f.close()
         f = None
 
-    class T: pass
+    class T: 
+        def __str__(self):
+            return '%s :: Total:%i  Sph:%i  Dark:%i  Star:%i' % (self.filename, self.h.nBodies, self.h.nSph, self.h.nDark, self.h.nStar)
+
     t = T()
-    t.hdr  = t.h = hdr
-    t.sph  = t.g = sph
-    t.dark = t.d = dark
-    t.star = t.s = star
-    t.file = t.f = f
+    t.hdr      = t.h = hdr
+    t.sph      = t.g = sph
+    t.dark     = t.d = dark
+    t.star     = t.s = star
+    t.file     = t.f = f
+    t.filename = filename
 
     if merge is not None:
         lst = []
@@ -126,7 +228,6 @@ def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
         t.p = np.hstack(lst).view(np.recarray)
 
     return t
-    #hdr, sph, dark, star, f
 
 
 def com(t):
@@ -161,15 +262,16 @@ if __name__ == '__main__':
     #h,g,d,s = load_tipsy('galaxy1.std')
 
     #t = load_tipsy('galaxy1.std', memmap=False)
-    t = load_tipsy('galaxy1.std', memmap=True, which='ds', merge=['m','r', 'tform'])
+    t = load_tipsy('galaxy1.std.gz', memmap=True)# , which='ds', merge=['m','r', 'tform'])
     #h,g,d,s,f = memmap_tipsy('galaxy1.std')
     #t = load_tipsy('/Users/jonathan/TIP2VTK/tip2vtk/dark.std', memmap=False, which='')
 
     #com(t)
-    print t.p.size, t.hdr.nBodies, t.p.dtype
+    #print t.p.size, t.hdr.nBodies, t.p.dtype
+    print np.sum(t.d.r[::100]**2, 1)
+    print t
 
     #print 'Radial distances (DM)'
-    #print np.sum(d.r**2, 1)
     #print d.r[0:10,0]**2
     #print np.sum(d.r**2, 1)
     #print d.m
