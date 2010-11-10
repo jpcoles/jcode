@@ -1,3 +1,15 @@
+#
+# pytipsy.py
+#
+# Read a TIPSY file into numpy arrays. Support record array views of the
+# data and the ability to memmap the file for large data sets.
+#
+# Written by Jonathan Coles
+# Institute for Theoretical Physics, University of Zurich
+#
+# This code is public domain.
+#
+
 import numpy as np
 
 def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
@@ -107,7 +119,11 @@ def load_tipsy(filename, fmt='auto', memmap=True, which='gds', merge=None):
     t.file = t.f = f
 
     if merge is not None:
-        t.p = np.hstack([ t.g[merge], t.s[merge], t.d[merge] ]).view(np.recarray)
+        lst = []
+        if nSph:  lst.append(t.g[merge])
+        if nDark: lst.append(t.d[merge])
+        if nStar: lst.append(t.s[merge])
+        t.p = np.hstack(lst).view(np.recarray)
 
     return t
     #hdr, sph, dark, star, f
@@ -145,7 +161,7 @@ if __name__ == '__main__':
     #h,g,d,s = load_tipsy('galaxy1.std')
 
     #t = load_tipsy('galaxy1.std', memmap=False)
-    t = load_tipsy('galaxy1.std', memmap=True, which='d', merge=['m','r', 'v'])
+    t = load_tipsy('galaxy1.std', memmap=True, which='ds', merge=['m','r', 'tform'])
     #h,g,d,s,f = memmap_tipsy('galaxy1.std')
     #t = load_tipsy('/Users/jonathan/TIP2VTK/tip2vtk/dark.std', memmap=False, which='')
 
