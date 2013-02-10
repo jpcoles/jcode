@@ -11,13 +11,13 @@ using namespace std;
 
 void help()
 {
-    fprintf(stderr, "Usage: markbox [-grp] [-std | -nat] <tipsy-in> <out> x y z r");
+    fprintf(stderr, "Usage: markbox [-grp] [-std | -nat] <tipsy-in> <out> x y z r\n");
     exit(2);
 }
 
 int main(int argc, char **argv)
 {
-    int i;
+    unsigned int i;
     ifTipsy in;
     FILE *out;
     TipsyHeader h;
@@ -72,9 +72,9 @@ int main(int argc, char **argv)
     in >> h;
 
     if (!group)
-        fprintf(out, "%i 0 0\n", h.h_nDark);
+        fprintf(out, "%u 0 0\n", h.h_nDark);
     else
-        fprintf(out, "%i\n", h.h_nDark);
+        fprintf(out, "%u\n", h.h_nDark);
 
     for (i=0; i < h.h_nDark; i++)
     {
@@ -86,10 +86,10 @@ int main(int argc, char **argv)
         bool accept = sqrt(pow(x-cx,2) + pow(y-cy,2) + pow(z-cz,2)) <= r;
 
         if (group)
-            fprintf(out, "%i\n", (int)accept);
+            fprintf(out, "%u\n", (int)accept);
         else
             if (accept) 
-                fprintf(out, "%i\n", i+1);
+                fprintf(out, "%u\n", i+1);
     }
 
     in.close();

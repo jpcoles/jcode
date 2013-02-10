@@ -25,6 +25,14 @@ void python_output(bool output_time, bool output_z, int mod, int nfiles, float t
     if (output_z)    printf("'%0.*f'", precision, 1/time - 1);
 }
 
+void bash_output(bool output_time, bool output_z, int mod, int nfiles, float time)
+{
+    if (nfiles != 1) printf(" ");
+    if (nfiles % mod == 0) printf("\n    ");
+    if (output_time) printf("%0.*f", precision, time);
+    if (output_z)    printf("%0.*f", precision, 1/time - 1);
+}
+
 void output(int argc, char **argv, int argind, int output_time, int output_z, output_func f, int mod)
 {
     for (int nfiles=0; argind < argc; argind++)
@@ -57,6 +65,7 @@ void help()
         "    -t                     Display the time\n"
         "    -z                     Display the redshift\n"
         "    --python               Output python lists\n"
+        "    --bash                 Output bash lists\n"
         "    -d #                   Display fractions with # digits\n"
         "\n"
         "If --python is not specified and both -t -z are, then two\n"
@@ -71,9 +80,9 @@ int main(int argc, char **argv)
     bool output_time = false;
     bool output_z = false;
     bool output_python = false;
+    bool output_bash = false;
 
     int mod=0;
-    int npass = 1;
 
     while (1) 
     {
@@ -82,6 +91,7 @@ int main(int argc, char **argv)
         int option_index = 0;
         static struct option long_options[] = {
             {"python", 0, 0, 0},
+            {"bash", 0, 0, 0},
             {"help", 0, 0, 'h'},
             {0, 0, 0, 0}
         };
@@ -94,10 +104,9 @@ int main(int argc, char **argv)
         {
             case 0:
                 if (!strcmp("python", long_options[option_index].name))
-                {
                     output_python = true;
-                    npass = 2;
-                }
+                else if (!strcmp("bash", long_options[option_index].name))
+                    output_bash = true;
                 break;
             case 't':
                 output_time = true;
@@ -144,6 +153,24 @@ int main(int argc, char **argv)
             printf("tipsy_z = [");
             output(argc, argv, optind, false, output_z, python_output, mod);
             printf("]\n\n");
+        }
+    }
+    else if (output_bash)
+    {
+        mod = 80 / (precision+5);
+        if (mod < 1) mod = 1;
+
+        if (output_time)
+        {
+            printf("TIPSY_TIMES = '");
+            output(argc, argv, optind, output_time, false, bash_output, mod);
+            printf("'\n\n");
+        }
+        if (output_z)
+        {
+            printf("TIPSY_Z = '");
+            output(argc, argv, optind, false, output_z, bash_output, mod);
+            printf("'\n\n");
         }
     }
     else

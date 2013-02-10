@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <assert.h>
-#include <cutil.h>
+//#include <cutil.h>
 #include "timing.h"
 
 CPUDEFS

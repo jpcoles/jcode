@@ -1,5 +1,6 @@
 NVCC=nvcc 
-INCLUDES+=-I/usr/local/NVIDIA_CUDA_SDK/common/inc
+INCLUDES+=-I/usr/local/cuda/include
+#INCLUDES+=-I/usr/local/NVIDIA_CUDA_SDK/common/inc
 CFLAGS=-g -O3 $(INCLUDES) -D_DEBUG
 LDFLAGS=$(LIBRARIES)
 

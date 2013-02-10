@@ -167,11 +167,19 @@ int main(int argc, char **argv)
             slices[j][i].min  = i * sliceDelta;
             slices[j][i].max  = slices[j][i].min + sliceDelta;
             slices[j][i].fname = new char[1024];
+#if 0
             snprintf(slices[j][i].fname, 1024, "%s_%.2f-%.2f_%03i.%c.jpg", 
                 argv[1], 
                 slices[j][i].min, slices[j][i].max,
                 i,
                 'x' + j);
+#else
+            snprintf(slices[j][i].fname, 1024, "%s_%.2f-%.2f_%03i.%c.jpg", 
+                "mri", 
+                slices[j][i].min, slices[j][i].max,
+                i,
+                'x' + j);
+#endif
 
             cerr << slices[j][i].fname << endl;
         }
@@ -237,7 +245,10 @@ int main(int argc, char **argv)
                     if (slices[j][i].freq[y][x] < minfreq) minfreq = slices[j][i].freq[y][x];
                 }
 
-    if (maxfreq == minfreq) { minfreq = 0; }
+    //if (maxfreq == minfreq) { minfreq = 0; }
+
+    float frange = maxfreq - minfreq;
+    if (frange == 0) frange = 1;
 
     for (int j=0; j < 3; j++)
         for (int i=0; i < nSlices; i++)
@@ -248,7 +259,8 @@ int main(int argc, char **argv)
             for (int y=0; y < height; y++)
                 for (int x=0; x < width; x++)
                 {
-                    float c = 1.0 + 3.0 * slices[j][i].freq[y][x] / (maxfreq - minfreq);
+                    float c = 1 + (slices[j][i].freq[y][x]-minfreq) / frange;
+                    //float c = 1.0 + 3.0 * slices[j][i].freq[y][x] / (maxfreq - minfreq);
                     c = 255.0 * log(c);
 
                     //if (j==0) printf("%f\n", c);
