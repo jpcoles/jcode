@@ -51,6 +51,14 @@ def deVaucouleurs(R, Ie=1, m=4, Re=1.0):
 def profile_exponential(R, Ie=.40, Rd=.50):
     return Ie * exp(-abs(R)/Rd)
 
+    beta        =       .20                     # arcsec - Basis function normalization
+    Nbases      =       25                      # sqrt(Number of basis functions)
+    grid_phys   =       2.0                     # arcsec - Physical size across grid
+    grid_radius =       71                      # pixels
+    grid_size   =       2*grid_radius + 1       # pixels
+    cell_size   =       grid_phys / grid_size   # arcsec/pixel
+    #grid_pos    =       (0.0, 0.0)              # arcsec
+
 def profile_exponential2(R):
     return (1+abs(R))**-2
 
@@ -186,6 +194,7 @@ def demo_lensing(N):
 def save_basis_functions(N):
     """Generate N 2D shapelets and plot."""
 
+    N = 5
     L = N**2
 
     beta2 = beta**2
@@ -212,9 +221,9 @@ def save_basis_functions(N):
             pylab.axis('off')
             pylab.imshow(B.T)
             l += 1
-    pylab.suptitle("Shapelets N=%i Beta=%.4f" % (N, beta))
-    #pylab.savefig("B%i.png" % N)
-    pylab.show()
+
+    #pylab.suptitle("Shapelets N=%i Beta=%.4f" % (N, beta))
+    pylab.savefig("B%i.png" % N, transparent=True)
 
 def save_bessel_functions(N):
     """Generate N 2D shapelets and plot."""
@@ -614,9 +623,9 @@ if __name__ == "__main__":
         pylab.show()
         sys.exit(0)
     #---------------------------------------------------------------------------
-    #save_basis_functions(8)
+    save_basis_functions(8)
     #demo_lensing(6)
-    #sys.exit(0)
+    sys.exit(0)
     #---------------------------------------------------------------------------
 
 
